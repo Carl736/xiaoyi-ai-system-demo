@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>小奕 · 用户登录</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+}
+
+body{
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-family:"Microsoft YaHei";
+
+    background:
+    linear-gradient(rgba(0,0,0,0.35),rgba(0,0,0,0.35)),
+    url("/static/xiaoyi.jpg");
+
+    background-size:cover;
+    background-position:center;
+}
+
+/* 登录盒子 */
+
+.login-box{
+
+    position:relative;
+    z-index:100;
+
+    width:420px;
+
+    padding:40px;
+
+    border-radius:24px;
+
+    background:rgba(255,255,255,0.08);
+
+    backdrop-filter:blur(20px);
+
+    border:1px solid rgba(255,255,255,0.15);
+
+    box-shadow:0 10px 50px rgba(0,0,0,0.35);
+
+    color:white;
+}
+
+.login-box h1{
+
+    text-align:center;
+
+    margin-bottom:12px;
+
+    font-size:34px;
+}
+
+.subtitle{
+
+    text-align:center;
+
+    margin-bottom:30px;
+
+    color:rgba(255,255,255,0.8);
+
+    font-size:15px;
+}
+
+.input-group{
+
+    margin-bottom:22px;
+}
+
+.input-group label{
+
+    display:block;
+
+    margin-bottom:10px;
+
+    font-size:15px;
+}
+
+.input-group input{
+
+    width:100%;
+
+    padding:14px;
+
+    border:none;
+
+    outline:none;
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,0.12);
+
+    color:white;
+
+    font-size:16px;
+
+    transition:0.3s;
+}
+
+.input-group input:focus{
+
+    background:rgba(255,255,255,0.18);
+
+    box-shadow:0 0 0 2px rgba(255,255,255,0.15);
+}
+
+.input-group input::placeholder{
+
+    color:rgba(255,255,255,0.65);
+}
+
+.login-btn{
+
+    width:100%;
+
+    padding:14px;
+
+    border:none;
+
+    border-radius:14px;
+
+    font-size:17px;
+
+    cursor:pointer;
+
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+
+    color:white;
+
+    transition:0.3s;
+}
+
+.login-btn:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 6px 24px rgba(99,102,241,0.45);
+}
+
+.message{
+
+    margin-top:22px;
+
+    text-align:center;
+
+    min-height:24px;
+
+    font-size:15px;
+}
+
+.register-link{
+
+    margin-top:24px;
+
+    text-align:center;
+
+    color:rgba(255,255,255,0.8);
+}
+
+.register-link a{
+
+    color:white;
+
+    text-decoration:none;
+
+    font-weight:bold;
+}
+
+.register-link a:hover{
+
+    text-decoration:underline;
+}
+
+/* ========================= */
+/* 桌宠区域 */
+/* ========================= */
+
+.assistant-wrapper {
+
+    position: fixed;
+
+    width: 180px;
+
+    height: 220px;
+
+    left: 65%;
+
+    top: 55%;
+
+    z-index: 9999;
+
+    pointer-events: auto;
+
+    transition: none;
+}
+
+.speech-bubble {
+
+    position: absolute;
+
+    bottom: 145px;
+
+    left: 105px;
+
+    max-width: 260px;
+
+    padding: 8px 12px;
+
+    background: rgba(255,255,255,0.95);
+
+    color: #333;
+
+    border-radius: 12px;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    z-index: 10000;
+
+    transition: 0.3s;
+
+    pointer-events: none;
+
+    white-space: nowrap;
+}
+
+.speech-bubble::after {
+
+    content: "";
+
+    position: absolute;
+
+    left: 8px;
+
+    bottom: -5px;
+
+    border-width: 5px 5px 0 5px;
+
+    border-style: solid;
+
+    border-color: rgba(255,255,255,0.95) transparent transparent transparent;
+}
+
+.assistant-pet {
+
+    width: 100%;
+
+    height: auto;
+
+    max-height: 180px;
+
+    position: absolute;
+
+    bottom: 0;
+
+    left: 0;
+
+    user-select: none;
+
+    cursor: pointer;
+
+    transform-origin: center bottom;
+
+    animation: floatPet 3s ease-in-out infinite;
+
+    object-fit: contain;
+}
+
+@keyframes floatPet {
+
+    0% { transform: translateY(0px); }
+
+    50% { transform: translateY(-10px); }
+
+    100% { transform: translateY(0px); }
+}
+
+.assistant-pet:hover {
+
+    animation: shakeHead 0.45s infinite;
+}
+
+@keyframes shakeHead {
+
+    0% { transform: rotate(0deg); }
+
+    25% { transform: rotate(-4deg); }
+
+    50% { transform: rotate(4deg); }
+
+    75% { transform: rotate(-4deg); }
+
+    100% { transform: rotate(0deg); }
+}
+
+.thinking {
+
+    animation: thinkingMove 0.7s infinite;
+}
+
+@keyframes thinkingMove {
+
+    0% { transform: translateY(0px); }
+
+    50% { transform: translateY(-18px) scale(1.03); }
+
+    100% { transform: translateY(0px); }
+}
+
+.happy {
+
+    animation: happyJump 0.5s ease;
+}
+
+@keyframes happyJump {
+
+    0% { transform: scale(1); }
+
+    50% { transform: scale(1.08) translateY(-18px); }
+
+    100% { transform: scale(1); }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="login-box">
+
+    <h1>✨ 欢迎回来</h1>
+
+    <div class="subtitle">
+        小奕已经在等你继续学习啦 📚
+    </div>
+
+    <div class="input-group">
+        <label>用户名</label>
+        <input
+            type="text"
+            id="username"
+            placeholder="输入你的用户名"
+        >
+    </div>
+
+    <div class="input-group">
+        <label>密码</label>
+        <input
+            type="password"
+            id="password"
+            placeholder="输入登录密码"
+        >
+    </div>
+
+    <button class="login-btn" id="loginBtn">
+        和小奕继续学习 ✨
+    </button>
+
+    <div class="message" id="message"></div>
+
+    <div class="register-link">
+        还没有账号？
+        <a href="/static/register.html">
+            去注册
+        </a>
+    </div>
+
+</div>
+
+<!-- 桌宠 -->
+
+<div class="assistant-wrapper" id="assistantWrapper">
+
+    <div class="speech-bubble" id="speechBubble">
+        小奕一直在等你回来呀 💖
+    </div>
+
+    <img
+        src="/static/image2.png"
+        class="assistant-pet"
+        id="assistantPet"
+    >
+
+</div>
+
+<script>
+
+const loginBtn = document.getElementById("loginBtn");
+
+const messageBox = document.getElementById("message");
+
+const pet = document.getElementById("assistantPet");
+
+const bubble = document.getElementById("speechBubble");
+
+const wrapper = document.getElementById("assistantWrapper");
+
+/* ========================= */
+/* 登录页语录 */
+/* ========================= */
+
+const cuteMessages = [
+
+    "欢迎回来呀，小奕想你啦 💖",
+
+    "今天也一起努力学习吧 ✨",
+
+    "小奕已经准备好帮你解题啦 📚",
+
+    "继续朝着更厉害的自己前进吧",
+
+    "学习累了也可以和小奕聊天哦",
+
+    "今天也会陪着你的 ✨",
+
+    "知识海洋再次启航啦 🚢",
+
+    "一起把不会的题全部解决掉！",
+
+    "嘿嘿，小奕最喜欢陪你学习啦",
+
+    "回来就好，小奕一直都在 💖"
+];
+
+/* ========================= */
+/* 桌宠移动逻辑 */
+/* ========================= */
+
+let petX = window.innerWidth * 0.65;
+
+let petY = window.innerHeight * 0.55;
+
+let vx = 0.8;
+
+let vy = 0.6;
+
+let mouseOnPet = false;
+
+let mouseX = window.innerWidth / 2;
+
+let mouseY = window.innerHeight / 2;
+
+const PET_WIDTH = 180;
+
+const PET_HEIGHT = 220;
+
+function isMouseOverPet(mx, my) {
+
+    return mx >= petX &&
+           mx <= petX + PET_WIDTH &&
+           my >= petY &&
+           my <= petY + PET_HEIGHT;
+}
+
+function movePet() {
+
+    if (mouseOnPet) {
+
+        requestAnimationFrame(movePet);
+
+        return;
+    }
+
+    let maxX = window.innerWidth - PET_WIDTH;
+
+    let maxY = window.innerHeight - PET_HEIGHT;
+
+    petX += vx;
+
+    petY += vy;
+
+    if (petX <= 0) {
+
+        petX = 0;
+
+        vx = Math.abs(vx);
+    }
+
+    if (petX >= maxX) {
+
+        petX = maxX;
+
+        vx = -Math.abs(vx);
+    }
+
+    if (petY <= 0) {
+
+        petY = 0;
+
+        vy = Math.abs(vy);
+    }
+
+    if (petY >= maxY) {
+
+        petY = maxY;
+
+        vy = -Math.abs(vy);
+    }
+
+    wrapper.style.left = petX + 'px';
+
+    wrapper.style.top = petY + 'px';
+
+    requestAnimationFrame(movePet);
+}
+
+document.addEventListener('mousemove', e => {
+
+    mouseX = e.clientX;
+
+    mouseY = e.clientY;
+
+    mouseOnPet = isMouseOverPet(mouseX, mouseY);
+
+    if(mouseOnPet){
+
+        bubble.innerText = "小奕会一直陪着你 ✨";
+
+    }
+});
+
+/* ========================= */
+/* 登录逻辑 */
+/* ========================= */
+
+loginBtn.onclick = async () => {
+
+    const username =
+    document.getElementById("username").value.trim();
+
+    const password =
+    document.getElementById("password").value.trim();
+
+    if(!username || !password){
+
+        messageBox.innerText =
+        "✨ 要输入用户名和密码哦";
+
+        bubble.innerText =
+        "小奕还不知道你是谁呀 💖";
+
+        return;
+    }
+
+    try{
+
+        pet.classList.add("thinking");
+
+        bubble.innerText =
+        "小奕正在确认你的身份...";
+
+        const response = await fetch(
+
+            "/api/users/login",
+
+            {
+
+                method:"POST",
+
+                headers:{
+                    "Content-Type":"application/json"
+                },
+
+                body:JSON.stringify({
+
+                    username:username,
+
+                    password:password
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        pet.classList.remove("thinking");
+
+        if(response.ok){
+
+            pet.classList.add("happy");
+
+            setTimeout(()=>{
+
+                pet.classList.remove("happy");
+
+            },500);
+
+            messageBox.innerText =
+            "✅ 登录成功";
+
+            bubble.innerText =
+            "欢迎回来，我们继续学习吧 ✨";
+
+            /* 保存登录信息 */
+
+            localStorage.setItem(
+                "token",
+                data.token
+            );
+
+            /* 你的后端返回的是 user_info */
+
+            if(data.user_info){
+
+                localStorage.setItem(
+                    "user_id",
+                    data.user_info.id
+                );
+
+                localStorage.setItem(
+                    "username",
+                    data.user_info.username
+                );
+            }
+
+            setTimeout(()=>{
+
+                bubble.innerText =
+                "小奕带你继续遨游知识海洋 📚";
+
+                window.location.href =
+                "/static/index.html";
+
+            },1500);
+
+        }else{
+
+            bubble.innerText =
+            "用户名或者密码不对哦 QAQ";
+
+            messageBox.innerText =
+            "❌ " + data.detail;
+        }
+
+    }catch(error){
+
+        console.log(error);
+
+        bubble.innerText =
+        "服务器刚刚睡着了 QAQ";
+
+        messageBox.innerText =
+        "服务器错误";
+    }
+}
+
+/* ========================= */
+/* 点击桌宠 */
+/* ========================= */
+
+pet.onclick = () => {
+
+    pet.classList.add("happy");
+
+    bubble.innerText =
+
+    cuteMessages[
+        Math.floor(
+            Math.random() * cuteMessages.length
+        )
+    ];
+
+    setTimeout(()=>{
+
+        pet.classList.remove("happy");
+
+    },500);
+};
+
+/* 自动换语录 */
+
+setInterval(()=>{
+
+    if(!mouseOnPet){
+
+        bubble.innerText =
+
+        cuteMessages[
+            Math.floor(
+                Math.random() * cuteMessages.length
+            )
+        ];
+    }
+
+},12000);
+
+window.addEventListener('resize', () => {
+
+    petX = Math.min(
+        petX,
+        window.innerWidth - PET_WIDTH
+    );
+
+    petY = Math.min(
+        petY,
+        window.innerHeight - PET_HEIGHT
+    );
+});
+
+movePet();
+
+</script>
+
+</body>
+
+</html>

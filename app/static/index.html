@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小奕 · 智能教学助手</title>
+
+<style>
+/* ===== 全局重置 ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(rgba(0,0,0,0.28), rgba(0,0,0,0.28)), url("/static/xiaoyi.jpg") no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== 主容器 ===== */
+.container {
+    width: 92%;
+    max-width: 1250px;
+    height: 90vh;
+    max-height: 96vh;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 26px;
+    box-shadow: 0 15px 60px rgba(0,0,0,0.35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== 顶部 ===== */
+.header {
+    min-height: 80px;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(99,102,241,0.22);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+.header-left h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+.header-left p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+}
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.header-btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    cursor: pointer;
+    transition: 0.25s;
+    font-size: 14px;
+}
+.header-btn:hover {
+    background: rgba(255,255,255,0.22);
+    transform: translateY(-2px);
+}
+
+/* ===== 主体：左栏 + 右栏 ===== */
+.main-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ===== 左侧栏 ===== */
+.sidebar {
+    padding: 20px 22px;
+    border-right: 1px solid rgba(255,255,255,0.08);
+    overflow-y: auto;
+}
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 14px;
+}
+.upload-area {
+    border: 2px dashed rgba(255,255,255,0.25);
+    border-radius: 16px;
+    padding: 24px 12px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    transition: 0.3s;
+}
+.upload-area:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.45);
+    transform: translateY(-2px);
+}
+.upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-title { font-size: 14px; margin-bottom: 4px; }
+.upload-desc { font-size: 12px; color: rgba(255,255,255,0.6); }
+#pdfInput { display: none; }
+
+.file-info {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+}
+.file-name { font-size: 13px; word-break: break-all; }
+.file-size { margin-top: 4px; font-size: 11px; color: rgba(255,255,255,0.55); }
+
+.status-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.15);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.status-success { color: #86efac; }
+.status-error { color: #fca5a5; }
+.status-loading { color: #fde68a; }
+
+.help-box {
+    margin-top: 20px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    line-height: 1.8;
+}
+.help-box strong { color: white; }
+
+/* ===== 右侧聊天面板 ===== */
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+.chat-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+.chat-header h2 { font-size: 18px; }
+.chat-header p { margin-top: 3px; font-size: 12px; color: rgba(255,255,255,0.6); }
+
+/* ---- 消息区域（可滚动） ---- */
+.answer-area {
+    flex: 1 1 0;
+    padding: 20px 24px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    min-height: 0;
+    max-height: 100%;
+    background: rgba(0,0,0,0.05);
+}
+
+/* 欢迎消息 */
+.welcome-message {
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    line-height: 1.8;
+}
+.welcome-message h3 { margin-bottom: 8px; }
+
+/* 消息气泡 */
+.message {
+    display: flex;
+    margin-bottom: 16px;
+}
+.message.user { justify-content: flex-end; }
+.message.ai { justify-content: flex-start; }
+.message-content {
+    max-width: 80%;
+    padding: 12px 18px;
+    border-radius: 18px;
+    line-height: 1.8;
+    font-size: 14px;
+    word-break: break-word;
+}
+.message.user .message-content {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-bottom-right-radius: 5px;
+}
+.message.ai .message-content {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-bottom-left-radius: 5px;
+}
+.message-content h1, .message-content h2, .message-content h3 { margin: 8px 0; }
+.message-content p { margin: 6px 0; }
+.message-content ul, .message-content ol { margin: 6px 0 6px 18px; }
+.message-content code {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.25);
+}
+.message-content pre {
+    margin-top: 8px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.3);
+}
+
+/* ---- 输入区域（固定在底部） ---- */
+.input-area {
+    padding: 14px 24px 18px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+    flex-grow: 0;
+    flex-basis: auto;
+    background: rgba(0,0,0,0.15);
+}
+.input-box {
+    display: flex;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+#questionInput {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: white;
+    font-size: 14px;
+}
+#questionInput::placeholder {
+    color: rgba(255,255,255,0.55);
+}
+#askBtn {
+    border: none;
+    padding: 0 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.25s;
+    white-space: nowrap;
+}
+#askBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 20px rgba(99,102,241,0.35);
+}
+#askBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+.input-tip {
+    margin-top: 6px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-align: right;
+}
+
+/* ===== 加载动画 ===== */
+.typing {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.typing span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: white;
+    animation: typing 1s infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+    0% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-6px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0.4; }
+}
+
+/* ===== 桌宠 ===== */
+.assistant-wrapper {
+    position: fixed;
+    width: 140px;
+    height: 180px;
+    right: 30px;
+    bottom: 20px;
+    z-index: 9999;
+    pointer-events: auto;
+}
+.speech-bubble {
+    position: absolute;
+    bottom: 128px;
+    left: -20px;
+    max-width: 220px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    left: 20px;
+    bottom: -5px;
+    border-width: 5px 5px 0 5px;
+    border-style: solid;
+    border-color: rgba(255,255,255,0.95) transparent transparent transparent;
+}
+.assistant-pet {
+    width: 100%;
+    max-height: 160px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    object-fit: contain;
+    cursor: pointer;
+    user-select: none;
+    animation: floatPet 3s ease-in-out infinite;
+    transform-origin: center bottom;
+}
+@keyframes floatPet {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+.assistant-pet:hover {
+    animation: shakeHead 0.45s infinite;
+}
+@keyframes shakeHead {
+    0% { transform: rotate(0); }
+    25% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+    75% { transform: rotate(-4deg); }
+    100% { transform: rotate(0); }
+}
+.happy {
+    animation: happyJump 0.5s ease !important;
+}
+@keyframes happyJump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08) translateY(-12px); }
+    100% { transform: scale(1); }
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar {
+    width: 5px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.35);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 800px) {
+    body { overflow: auto; }
+    .container {
+        width: 96%;
+        height: 94vh;
+        border-radius: 18px;
+    }
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+    .sidebar {
+        display: none;
+    }
+    .header-left p { display: none; }
+    .header { padding: 12px 16px; min-height: 60px; flex-wrap: wrap; gap: 8px; }
+    .header-left h1 { font-size: 18px; }
+    .header-btn { padding: 6px 12px; font-size: 12px; }
+    .assistant-wrapper { display: none; }
+    .message-content { max-width: 92%; }
+    .chat-header { padding: 12px 16px; }
+    .chat-header h2 { font-size: 16px; }
+    .answer-area { padding: 14px 16px; }
+    .input-area { padding: 10px 16px 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ====== 主容器 ====== -->
+<div class="container">
+
+    <!-- 顶部 -->
+    <div class="header">
+        <div class="header-left">
+            <h1>📖 小奕 · 智能教学助手</h1>
+            <p>上传教材，提问即答 ｜ 基于 RAG 的智能学习助手</p>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="goHistory()">💬 历史记录</button>
+            <button class="header-btn" onclick="goProfile()">👤 用户中心</button>
+            <button class="header-btn" onclick="logout()">🚪 退出</button>
+        </div>
+    </div>
+
+    <!-- 主体 -->
+    <div class="main-content">
+
+        <!-- 左侧栏 -->
+        <aside class="sidebar">
+            <div class="section-title">📚 教材管理</div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <div class="upload-title">点击上传 PDF 教材</div>
+                <div class="upload-desc">支持 PDF 文件</div>
+            </div>
+            <input type="file" id="pdfInput" accept=".pdf,application/pdf">
+            <div class="file-info" id="fileInfo">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <div class="status-box" id="statusBox">📖 等待上传教材</div>
+            <div class="help-box">
+                <strong>💡 使用方法</strong><br>
+                ① 上传你的 PDF 教材<br>
+                ② 等待教材处理完成<br>
+                ③ 在右侧输入问题<br>
+                ④ 小奕会结合教材回答<br>
+                ⑤ 如果后端返回页码，会在答案中显示教材位置
+            </div>
+        </aside>
+
+        <!-- 右侧聊天面板 -->
+        <main class="chat-panel">
+            <div class="chat-header">
+                <h2>💬 和小奕聊天</h2>
+                <p>你可以直接提问，也可以让小奕根据教材解释知识点</p>
+            </div>
+
+            <div class="answer-area" id="answerArea">
+                <div class="welcome-message" id="welcomeMessage">
+                    <h3>✨ 你好，我是小奕</h3>
+                    <p>先上传你的教材，然后问我任何你不会的问题吧。</p>
+                    <p>例如：</p>
+                    <p>「什么是无穷级数？」</p>
+                    <p>「请根据教材解释泰勒公式」</p>
+                    <p>「这个定理在哪一页？」</p>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-box">
+                    <input id="questionInput" type="text" autocomplete="off" placeholder="例如：什么是无穷级数？">
+                    <button id="askBtn">发送</button>
+                </div>
+                <div class="input-tip">Enter 发送</div>
+            </div>
+        </main>
+
+    </div>
+</div>
+
+<!-- ====== 桌宠 ====== -->
+<div class="assistant-wrapper" id="assistantWrapper">
+    <div class="speech-bubble" id="speechBubble">小奕在等你一起学习呀 ✨</div>
+    <img src="/static/image2.png" class="assistant-pet" id="assistantPet" alt="小奕桌宠">
+</div>
+
+<script>
+// ========================================================
+// 1. 登录状态检查
+// ========================================================
+const token = localStorage.getItem("token");
+if (!token) {
+    window.location.href = "/static/login.html";
+}
+
+// ========================================================
+// 2. DOM 引用
+// ========================================================
+const askBtn = document.getElementById("askBtn");
+const questionInput = document.getElementById("questionInput");
+const answerArea = document.getElementById("answerArea");
+const welcomeMessage = document.getElementById("welcomeMessage");
+const pdfInput = document.getElementById("pdfInput");
+const uploadArea = document.getElementById("uploadArea");
+const fileInfo = document.getElementById("fileInfo");
+const fileName = document.getElementById("fileName");
+const fileSize = document.getElementById("fileSize");
+const statusBox = document.getElementById("statusBox");
+const pet = document.getElementById("assistantPet");
+const bubble = document.getElementById("speechBubble");
+
+// ========================================================
+// 3. 统一认证请求
+// ========================================================
+async function authFetch(url, options = {}) {
+    const headers = {
+        ...(options.headers || {}),
+        "Authorization": "Bearer " + token
+    };
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+        localStorage.clear();
+        alert("登录状态已经失效，请重新登录");
+        window.location.href = "/static/login.html";
+        return null;
+    }
+    return response;
+}
+
+// ========================================================
+// 4. 获取错误信息
+// ========================================================
+async function getErrorMessage(response) {
+    try {
+        const data = await response.json();
+        if (data.detail) {
+            if (typeof data.detail === "string") return data.detail;
+            return JSON.stringify(data.detail);
+        }
+        return JSON.stringify(data);
+    } catch {
+        return "服务器返回错误，状态码：" + response.status;
+    }
+}
+
+// ========================================================
+// 5. 工具函数：HTML转义 + 简单Markdown
+// ========================================================
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+function renderMarkdown(text) {
+    let html = escapeHtml(text);
+    html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/\n/g, "<br>");
+    return html;
+}
+
+// ========================================================
+// 6. 添加消息
+// ========================================================
+function addMessage(role, content) {
+    if (welcomeMessage) welcomeMessage.remove();
+    const message = document.createElement("div");
+    message.className = "message " + role;
+    const contentBox = document.createElement("div");
+    contentBox.className = "message-content";
+    if (role === "ai") {
+        contentBox.innerHTML = renderMarkdown(content);
+    } else {
+        contentBox.textContent = content;
+    }
+    message.appendChild(contentBox);
+    answerArea.appendChild(message);
+    answerArea.scrollTop = answerArea.scrollHeight;
+    return message;
+}
+
+// ========================================================
+// 7. 加载动画
+// ========================================================
+function createTypingMessage() {
+    if (welcomeMessage) welcomeMessage.remove();
+    const message = document.createElement("div");
+    message.className = "message ai";
+    message.innerHTML = `<div class="message-content"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    answerArea.appendChild(message);
+    answerArea.scrollTop = answerArea.scrollHeight;
+    return message;
+}
+
+// ========================================================
+// 8. 打字机效果
+// ========================================================
+function typeWriter(element, text) {
+    element.innerHTML = "";
+    let index = 0;
+    const timer = setInterval(() => {
+        if (index >= text.length) { clearInterval(timer); return; }
+        element.innerHTML = renderMarkdown(text.substring(0, index + 1));
+        index++;
+        answerArea.scrollTop = answerArea.scrollHeight;
+    }, 15);
+}
+
+// ========================================================
+// 9. 提问
+// ========================================================
+async function askQuestion() {
+    const question = questionInput.value.trim();
+    if (!question) {
+        bubble.innerText = "先问我一个问题呀 ✨";
+        questionInput.focus();
+        return;
+    }
+    askBtn.disabled = true;
+    questionInput.disabled = true;
+    addMessage("user", question);
+    questionInput.value = "";
+    const typingMessage = createTypingMessage();
+    bubble.innerText = "小奕正在认真思考中...";
+
+    try {
+        const response = await authFetch("/api/chat/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: question })
+        });
+        if (!response) return;
+        if (!response.ok) {
+            const error = await getErrorMessage(response);
+            typingMessage.remove();
+            addMessage("ai", "❌ " + error);
+            bubble.innerText = "刚才好像出了一点问题 QAQ";
+            return;
+        }
+        const data = await response.json();
+        console.log("聊天接口返回：", data);
+        typingMessage.remove();
+        const answer = data.answer || "小奕暂时没有得到答案。";
+        const aiMessage = addMessage("ai", "");
+        const contentElement = aiMessage.querySelector(".message-content");
+        typeWriter(contentElement, answer);
+        bubble.innerText = "嘿嘿，回答好啦 ✨";
+    } catch (error) {
+        console.error("提问错误：", error);
+        if (typingMessage) typingMessage.remove();
+        addMessage("ai", "❌ 请求失败，请检查 FastAPI 后端是否正常运行。");
+        bubble.innerText = "服务器好像打了个盹 QAQ";
+    } finally {
+        askBtn.disabled = false;
+        questionInput.disabled = false;
+        questionInput.focus();
+    }
+}
+
+// ========================================================
+// 10. 事件绑定
+// ========================================================
+askBtn.addEventListener("click", askQuestion);
+questionInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        askQuestion();
+    }
+});
+uploadArea.addEventListener("click", () => pdfInput.click());
+
+// ========================================================
+// 11. 文件上传
+// ========================================================
+function formatFileSize(size) {
+    if (size < 1024) return size + " B";
+    if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+    return (size / 1024 / 1024).toFixed(2) + " MB";
+}
+pdfInput.addEventListener("change", async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        statusBox.className = "status-box status-error";
+        statusBox.innerText = "❌ 请选择 PDF 文件";
+        pdfInput.value = "";
+        return;
+    }
+    fileInfo.style.display = "block";
+    fileName.innerText = "📄 " + file.name;
+    fileSize.innerText = formatFileSize(file.size);
+    statusBox.className = "status-box status-loading";
+    statusBox.innerText = "⏳ 正在上传并处理教材，请稍等...";
+    bubble.innerText = "小奕正在认真读取教材 📚";
+
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await authFetch("/api/upload/pdf", {
+            method: "POST",
+            body: formData
+        });
+        if (!response) return;
+        if (!response.ok) {
+            const error = await getErrorMessage(response);
+            statusBox.className = "status-box status-error";
+            statusBox.innerText = "❌ " + error;
+            bubble.innerText = "教材好像没有处理成功 QAQ";
+            return;
+        }
+        const data = await response.json();
+        console.log("PDF 上传返回：", data);
+        statusBox.className = "status-box status-success";
+        statusBox.innerText = "✅ 教材处理完成，可以开始提问啦！";
+        bubble.innerText = "教材已经读完啦，快问我吧 ✨";
+    } catch (error) {
+        console.error("PDF 上传错误：", error);
+        statusBox.className = "status-box status-error";
+        statusBox.innerText = "❌ 上传失败，请检查 FastAPI 后端";
+        bubble.innerText = "服务器好像打了个盹 QAQ";
+    }
+});
+
+// ========================================================
+// 12. 页面跳转
+// ========================================================
+function goProfile() { window.location.href = "/static/profile.html"; }
+function goHistory() { window.location.href = "/static/history.html"; }
+function logout() {
+    if (confirm("确定要退出登录吗？")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("username");
+        window.location.href = "/static/login.html";
+    }
+}
+
+// ========================================================
+// 13. 桌宠互动
+// ========================================================
+const cuteMessages = [
+    "今天也一起征服高数吧 📚",
+    "不会的题都可以问小奕哦 ✨",
+    "学习累了吗？休息一下也没关系 💖",
+    "教材上传好了吗？",
+    "小奕一直在这里陪着你呀 🌸",
+    "认真学习的人最可爱啦 ✨",
+    "来吧，让我们解决这个问题！"
+];
+pet.addEventListener("click", () => {
+    pet.classList.add("happy");
+    bubble.innerText = cuteMessages[Math.floor(Math.random() * cuteMessages.length)];
+    setTimeout(() => pet.classList.remove("happy"), 500);
+});
+setInterval(() => {
+    bubble.innerText = cuteMessages[Math.floor(Math.random() * cuteMessages.length)];
+}, 15000);
+
+// ========================================================
+// 14. 初始化
+// ========================================================
+questionInput.focus();
+</script>
+
+</body>
+</html>

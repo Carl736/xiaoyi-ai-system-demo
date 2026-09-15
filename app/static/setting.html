@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小奕 · 用户中心</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('/static/xiaoyi.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+/* ========================= */
+/* 主容器 */
+/* ========================= */
+.profile-box {
+    position: relative;
+    z-index: 100;
+    width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 40px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    color: white;
+}
+
+.profile-box h1 {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 28px;
+}
+
+.subtitle {
+    text-align: center;
+    margin-bottom: 30px;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+}
+
+/* ========================= */
+/* 头像区域 */
+/* ========================= */
+.avatar-section {
+    text-align: center;
+    margin-bottom: 28px;
+}
+.avatar-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: 0.3s;
+}
+.avatar-wrapper:hover {
+    border-color: rgba(99,102,241,0.8);
+    transform: scale(1.05);
+}
+.avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.avatar-edit {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 4px;
+    background: rgba(0,0,0,0.5);
+    font-size: 11px;
+    color: white;
+}
+#avatarInput { display: none; }
+
+/* ========================= */
+/* 信息展示/编辑 */
+/* ========================= */
+.info-section { margin-bottom: 24px; }
+.section-title {
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.edit-btn, .save-btn, .cancel-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.edit-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+}
+.edit-btn:hover { background: rgba(255,255,255,0.25); }
+.save-btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+}
+.save-btn:hover { transform: translateY(-1px); }
+.cancel-btn {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    margin-left: 8px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.info-label {
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+}
+.info-value {
+    font-size: 14px;
+    text-align: right;
+}
+
+/* 编辑模式输入框 */
+.info-row input, .info-row select, .info-row textarea {
+    width: 60%;
+    padding: 8px 12px;
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: 14px;
+}
+.info-row input::placeholder, .info-row textarea::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+.info-row select {
+    cursor: pointer;
+}
+.info-row select option {
+    background: #333;
+    color: white;
+}
+.info-row textarea {
+    resize: none;
+    height: 60px;
+}
+
+/* ========================= */
+/* 修改密码区域 */
+/* ========================= */
+.password-section { margin-bottom: 24px; }
+.password-form {
+    display: none;
+    margin-top: 12px;
+}
+.password-form.show { display: block; }
+.pwd-input-group {
+    margin-bottom: 12px;
+}
+.pwd-input-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+}
+.pwd-input-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    outline: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: 14px;
+}
+.pwd-input-group input::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+
+/* ========================= */
+/* 操作按钮 */
+/* ========================= */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+.action-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
+}
+.btn-back {
+    background: rgba(255,255,255,0.12);
+    color: white;
+}
+.btn-back:hover { background: rgba(255,255,255,0.2); }
+.btn-logout {
+    background: rgba(239,68,68,0.25);
+    color: #fca5a5;
+}
+.btn-logout:hover {
+    background: rgba(239,68,68,0.4);
+    transform: translateY(-1px);
+}
+
+/* ========================= */
+/* 消息提示 */
+/* ========================= */
+.message {
+    margin-top: 16px;
+    text-align: center;
+    min-height: 22px;
+    font-size: 14px;
+}
+
+/* ========================= */
+/* 桌宠 */
+/* ========================= */
+.assistant-wrapper {
+    position: fixed;
+    width: 180px;
+    height: 220px;
+    right: 8%;
+    bottom: 10%;
+    z-index: 9999;
+    pointer-events: auto;
+    transition: none;
+}
+.speech-bubble {
+    position: absolute;
+    bottom: 145px;
+    left: 105px;
+    max-width: 260px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    z-index: 10000;
+    transition: 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    bottom: -5px;
+    border-width: 5px 5px 0 5px;
+    border-style: solid;
+    border-color: rgba(255,255,255,0.95) transparent transparent transparent;
+}
+.assistant-pet {
+    width: 100%;
+    height: auto;
+    max-height: 180px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    user-select: none;
+    cursor: pointer;
+    transform-origin: center bottom;
+    animation: floatPet 3s ease-in-out infinite;
+    object-fit: contain;
+}
+@keyframes floatPet {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+.assistant-pet:hover { animation: shakeHead 0.45s infinite; }
+@keyframes shakeHead {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+    75% { transform: rotate(-4deg); }
+    100% { transform: rotate(0deg); }
+}
+.happy { animation: happyJump 0.5s ease; }
+@keyframes happyJump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08) translateY(-18px); }
+    100% { transform: scale(1); }
+}
+</style>
+</head>
+<body>
+
+<!-- ========================= -->
+<!-- 用户中心面板 -->
+<!-- ========================= -->
+<div class="profile-box">
+
+    <h1>👤 用户中心</h1>
+    <div class="subtitle">小奕帮你管理个人信息 ✨</div>
+
+    <!-- 头像 -->
+    <div class="avatar-section">
+        <div class="avatar-wrapper" onclick="document.getElementById('avatarInput').click()">
+            <img src="/static/default-avatar.png" id="avatarImg" alt="头像">
+            <div class="avatar-edit">点击更换</div>
+        </div>
+        <input type="file" id="avatarInput" accept="image/*" onchange="uploadAvatar(this)">
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="info-section" id="basicInfo">
+        <div class="section-title">
+            <span>📋 基本信息</span>
+            <button class="edit-btn" id="editBasicBtn" onclick="toggleEditBasic()">编辑</button>
+        </div>
+        <div id="basicInfoView">
+            <div class="info-row">
+                <span class="info-label">用户名</span>
+                <span class="info-value" id="viewUsername">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">个性签名</span>
+                <span class="info-value" id="viewBio">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">性别</span>
+                <span class="info-value" id="viewGender">-</span>
+            </div>
+        </div>
+        <div id="basicInfoEdit" style="display:none;">
+            <div class="info-row">
+                <span class="info-label">用户名</span>
+                <input type="text" id="editUsername" disabled style="opacity:0.5;">
+            </div>
+            <div class="info-row">
+                <span class="info-label">个性签名</span>
+                <textarea id="editBio" placeholder="写点什么吧..."></textarea>
+            </div>
+            <div class="info-row">
+                <span class="info-label">性别</span>
+                <select id="editGender">
+                    <option value="">保密</option>
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                </select>
+            </div>
+            <div style="text-align:right;margin-top:12px;">
+                <button class="save-btn" onclick="saveBasicInfo()">保存</button>
+                <button class="cancel-btn" onclick="toggleEditBasic()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div class="password-section">
+        <div class="section-title">
+            <span>🔒 修改密码</span>
+            <button class="edit-btn" onclick="togglePasswordForm()">修改</button>
+        </div>
+        <div class="password-form" id="passwordForm">
+            <div class="pwd-input-group">
+                <label>旧密码</label>
+                <input type="password" id="oldPassword" placeholder="输入当前密码">
+            </div>
+            <div class="pwd-input-group">
+                <label>新密码</label>
+                <input type="password" id="newPassword" placeholder="输入新密码">
+            </div>
+            <div class="pwd-input-group">
+                <label>确认新密码</label>
+                <input type="password" id="confirmPassword" placeholder="再次输入新密码">
+            </div>
+            <div style="text-align:right;margin-top:12px;">
+                <button class="save-btn" onclick="changePassword()">确认修改</button>
+                <button class="cancel-btn" onclick="togglePasswordForm()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button class="action-btn btn-back" onclick="window.location.href='/static/index.html'">
+            ← 返回学习
+        </button>
+        <button class="action-btn btn-logout" onclick="logout()">
+            退出登录
+        </button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+</div>
+
+<!-- ========================= -->
+<!-- 桌宠 -->
+<!-- ========================= -->
+<div class="assistant-wrapper" id="assistantWrapper">
+    <div class="speech-bubble" id="speechBubble">小奕帮你管理资料呀 💖</div>
+    <img src="/static/image2.png" class="assistant-pet" id="assistantPet">
+</div>
+
+<script>
+/* ===================================== */
+/* 1️⃣ 登录校验 */
+/* ===================================== */
+const token = localStorage.getItem("token");
+const username = localStorage.getItem("username") || "同学";
+
+if (!token) {
+    window.location.href = "/static/login.html";
+}
+
+/* 封装带认证的 fetch */
+async function authFetch(url, options = {}) {
+    const headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+        ...options.headers
+    };
+    try {
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) {
+            localStorage.clear();
+            window.location.href = "/static/login.html";
+            return;
+        }
+        return res;
+    } catch (err) {
+        showMessage("网络开小差了...", "error");
+        throw err;
+    }
+}
+
+/* ===================================== */
+/* 元素 */
+/* ===================================== */
+const pet = document.getElementById("assistantPet");
+const bubble = document.getElementById("speechBubble");
+const messageBox = document.getElementById("message");
+
+/* ===================================== */
+/* 桌宠语录 */
+/* ===================================== */
+const cuteMessages = [
+    `${username}，小奕帮你管理资料呀 💖`,
+    `${username}，记得换个好看的头像哦 ✨`,
+    `密码要记好，${username} 🔐`,
+    `${username}，个人信息要保密哦 📋`,
+    `小奕会一直陪着你的，${username} 💕`
+];
+
+/* ===================================== */
+/* 2️⃣ 加载用户信息 */
+/* ===================================== */
+let userInfo = {};
+
+async function loadUserInfo() {
+    try {
+        const res = await authFetch("/api/users/info");
+        if (!res) return;
+        userInfo = await res.json();
+
+        // 填充展示
+        document.getElementById("viewUsername").innerText = userInfo.username || "-";
+        document.getElementById("viewBio").innerText = userInfo.bio || "还没有个性签名";
+        document.getElementById("viewGender").innerText = formatGender(userInfo.gender);
+
+        // 填充编辑框
+        document.getElementById("editUsername").value = userInfo.username || "";
+        document.getElementById("editBio").value = userInfo.bio || "";
+        document.getElementById("editGender").value = userInfo.gender || "";
+
+        // 如果有头像
+        if (userInfo.avatar) {
+            document.getElementById("avatarImg").src = userInfo.avatar;
+        }
+
+        bubble.innerText = `欢迎回来，${userInfo.username || username} ✨`;
+    } catch (err) {
+        showMessage("获取用户信息失败", "error");
+    }
+}
+
+function formatGender(g) {
+    if (g === "male") return "男";
+    if (g === "female") return "女";
+    return "保密";
+}
+
+/* ===================================== */
+/* 3️⃣ 编辑基本信息 */
+/* ===================================== */
+let isEditingBasic = false;
+
+function toggleEditBasic() {
+    isEditingBasic = !isEditingBasic;
+    document.getElementById("basicInfoView").style.display = isEditingBasic ? "none" : "block";
+    document.getElementById("basicInfoEdit").style.display = isEditingBasic ? "block" : "none";
+    document.getElementById("editBasicBtn").style.display = isEditingBasic ? "none" : "inline-block";
+}
+
+async function saveBasicInfo() {
+    const bio = document.getElementById("editBio").value.trim();
+    const gender = document.getElementById("editGender").value;
+
+    try {
+        const res = await authFetch("/api/users/update", {
+            method: "PUT",
+            body: JSON.stringify({ bio, gender })
+        });
+        if (!res) return;
+
+        const data = await res.json();
+        showMessage("保存成功 ✨", "success");
+
+        // 更新展示
+        document.getElementById("viewBio").innerText = bio || "还没有个性签名";
+        document.getElementById("viewGender").innerText = formatGender(gender);
+
+        toggleEditBasic();
+        pet.classList.add("happy");
+        bubble.innerText = `${username}，资料更新好啦 💖`;
+        setTimeout(() => pet.classList.remove("happy"), 500);
+
+    } catch (err) {
+        showMessage("保存失败", "error");
+    }
+}
+
+/* ===================================== */
+/* 4️⃣ 修改密码 */
+/* ===================================== */
+function togglePasswordForm() {
+    document.getElementById("passwordForm").classList.toggle("show");
+}
+
+async function changePassword() {
+    const oldPwd = document.getElementById("oldPassword").value;
+    const newPwd = document.getElementById("newPassword").value;
+    const confirmPwd = document.getElementById("confirmPassword").value;
+
+    if (!oldPwd || !newPwd) {
+        showMessage("请填写完整密码信息", "error");
+        return;
+    }
+    if (newPwd !== confirmPwd) {
+        showMessage("两次新密码不一致", "error");
+        return;
+    }
+
+    try {
+        const res = await authFetch("/api/users/password", {
+            method: "PUT",
+            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+        });
+        if (!res) return;
+
+        showMessage("密码修改成功，请重新登录 ✨", "success");
+        bubble.innerText = `${username}，密码改好啦，要记牢哦 🔐`;
+
+        // 清空输入
+        document.getElementById("oldPassword").value = "";
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+
+        setTimeout(() => {
+            togglePasswordForm();
+        }, 1500);
+
+    } catch (err) {
+        showMessage("旧密码错误或修改失败", "error");
+    }
+}
+
+/* ===================================== */
+/* 5️⃣ 头像上传 */
+/* ===================================== */
+async function uploadAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // 这里假设后端有上传接口，如果没有先用 base64 预览
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById("avatarImg").src = e.target.result;
+        showMessage("头像预览已更新，保存功能需要后端支持", "success");
+    };
+    reader.readAsDataURL(file);
+
+    // 如果有后端上传接口，用 FormData：
+    /*
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/users/avatar", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+        body: formData
+    });
+    */
+}
+
+/* ===================================== */
+/* 6️⃣ 退出登录 */
+/* ===================================== */
+function logout() {
+    if (!confirm("确定要退出登录吗？小奕会想你的...")) return;
+
+    localStorage.clear();
+    bubble.innerText = `${username}，再见啦 👋`;
+    pet.classList.add("happy");
+
+    setTimeout(() => {
+        window.location.href = "/static/login.html";
+    }, 800);
+}
+
+/* ===================================== */
+/* 工具函数 */
+/* ===================================== */
+function showMessage(text, type) {
+    messageBox.innerText = text;
+    messageBox.style.color = type === "error" ? "#fca5a5" : "#86efac";
+    setTimeout(() => { messageBox.innerText = ""; }, 3000);
+}
+
+/* ===================================== */
+/* 桌宠互动 */
+/* ===================================== */
+pet.onclick = () => {
+    pet.classList.add("happy");
+    bubble.innerText = cuteMessages[Math.floor(Math.random() * cuteMessages.length)];
+    setTimeout(() => pet.classList.remove("happy"), 500);
+};
+
+setInterval(() => {
+    bubble.innerText = cuteMessages[Math.floor(Math.random() * cuteMessages.length)];
+}, 15000);
+
+/* ===================================== */
+/* 启动 */
+/* ===================================== */
+loadUserInfo();
+</script>
+
+</body>
+</html>

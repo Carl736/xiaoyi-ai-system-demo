@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史记录 · 小奕</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #1e1e2f;
+            color: #eee;
+            padding: 30px;
+            min-height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
+                        url("/static/xiaoyi.jpg") no-repeat center center fixed;
+            background-size: cover;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 30px;
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .back-link {
+            color: #a5b4fc;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            transition: 0.25s;
+        }
+        .back-link:hover {
+            background: rgba(255,255,255,0.14);
+            text-decoration: none;
+        }
+        .record {
+            background: rgba(255,255,255,0.04);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-top: 20px;
+            border-left: 4px solid #6366f1;
+            transition: 0.2s;
+        }
+        .record:hover {
+            background: rgba(255,255,255,0.07);
+        }
+        .record .question {
+            font-weight: bold;
+            color: #c4b5fd;
+            font-size: 16px;
+        }
+        .record .answer {
+            margin-top: 8px;
+            color: #d1d5db;
+            line-height: 1.8;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+        .record .meta {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: right;
+        }
+        .empty {
+            text-align: center;
+            padding: 60px 0;
+            color: #9ca3af;
+            font-size: 18px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px 0;
+            color: #a5b4fc;
+        }
+        .error {
+            color: #fca5a5;
+            text-align: center;
+            padding: 20px;
+        }
+        /* 简单 markdown 样式 */
+        .answer pre {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        .answer code {
+            background: rgba(0,0,0,0.25);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .answer strong {
+            color: #fff;
+        }
+        .answer p {
+            margin: 6px 0;
+        }
+        .answer ul, .answer ol {
+            margin: 6px 0 6px 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📜 我的历史记录</h1>
+        <a href="/static/index.html" class="back-link">← 回到聊天</a>
+    </div>
+    <div id="historyList">
+        <div class="loading">⏳ 正在加载记录...</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/static/login.html";
+    }
+
+    async function loadHistory() {
+        const container = document.getElementById("historyList");
+        try {
+            const response = await fetch("/api/chat/history", {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+            if (response.status === 401) {
+                localStorage.clear();
+                alert("登录已过期，请重新登录");
+                window.location.href = "/static/login.html";
+                return;
+            }
+            if (!response.ok) {
+                throw new Error("获取历史记录失败（HTTP " + response.status + "）");
+            }
+            const data = await response.json();
+            if (data.length === 0) {
+                container.innerHTML = `<div class="empty">📭 还没有聊天记录，快去和小奕聊天吧！</div>`;
+                return;
+            }
+            let html = '';
+            data.forEach(item => {
+                const date = new Date(item.created_at);
+                const timeStr = date.toLocaleString('zh-CN', { hour12: false });
+                html += `
+                    <div class="record">
+                        <div class="question">❓ ${escapeHtml(item.question)}</div>
+                        <div class="answer">${renderMarkdown(item.answer)}</div>
+                        <div class="meta">🕒 ${timeStr}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } catch (err) {
+            container.innerHTML = `<div class="error">❌ 加载失败：${escapeHtml(err.message)}</div>`;
+        }
+    }
+
+    // 工具函数：转义 HTML 防止 XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 简单的 Markdown 渲染（与主页面保持一致）
+    function renderMarkdown(text) {
+        if (!text) return '';
+        let html = escapeHtml(text);
+        html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+        html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        html = html.replace(/\n/g, "<br>");
+        return html;
+    }
+
+    loadHistory();
+</script>
+</body>
+</html>
