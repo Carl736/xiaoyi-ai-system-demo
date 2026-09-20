@@ -219,7 +219,7 @@ async def process_pdf(
 
         texts=[
             chunk_obj.content
-            for chunk_obj in chunks
+            for chunk_obj in chunk_objs
         ]
 
     # =========================

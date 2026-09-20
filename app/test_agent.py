@@ -1,52 +1,87 @@
-# test_agent.py（放在项目根目录）
-import sys
-import os
+# test_agent.py
 
-# 把项目根目录加入路径，方便导入
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from app.service.agent_service import route_question
+from app.service.textbook_tool import textbook_search
 
-from app.service.agent_service import should_search_textbook
 
-# ==========================================
-# 测试问题列表
-# ==========================================
-test_cases = [
-    ("什么是泰勒公式？", True),
-    ("请解释导数与微分的关系", True),
-    ("罗尔定理的条件是什么", True),
-    ("计算 ∫x² dx", True),
-    ("高等数学第二讲讲了什么", True),
-    ("今天天气怎么样？", False),
-    ("你好吗？", False),
-    ("你叫什么名字？", False),
-    ("给我讲个笑话", False),
-    ("如何做红烧肉？", False),
-]
+def test_router():
+    """测试 Agent 路由"""
 
-# ==========================================
-# 运行测试
-# ==========================================
-print("=" * 60)
-print("Agent 决策测试")
-print("=" * 60)
+    print("=" * 60)
+    print("第一部分：测试 Agent Router")
+    print("=" * 60)
 
-correct = 0
-total = len(test_cases)
+    questions = [
+        "你好呀",
+        "你叫什么名字？",
+        "泰勒公式是什么？",
+        "教材中的洛必达法则怎么使用？",
+        "书上第三章主要讲什么？",
+    ]
 
-for question, expected in test_cases:
-    result = should_search_textbook(question)
-    need_search = result.get("need_search", False)#result是一个字典，get函数的作用是：如果字典里有这个键，就返回对应的值；如果没有，就返回默认值，这里默认值是False
-    reason = result.get("reason", "无理由")#get函数的作用是：如果字典里有这个键，就返回对应的值；如果没有，就返回默认值，这里默认值是"无理由"
+    for question in questions:
 
-    status = "✅" if need_search == expected else "❌"
-    print(f"{status} 问题：{question}")
-    print(f"   决策：{'需要搜教材' if need_search else '不需要搜教材'}（预期：{'需要' if expected else '不需要'}）")
-    print(f"   理由：{reason}")
-    print()
+        print(f"\n用户问题：{question}")
 
-    if need_search == expected:
-        correct += 1
+        result = route_question(question)
 
-print("=" * 60)
-print(f"准确率：{correct}/{total} = {correct/total*100:.1f}%")
-print("=" * 60)
+        print(f"选择 Tool：{result.get('tool')}")
+        print(f"判断理由：{result.get('reason')}")
+
+
+def test_textbook_tool():
+    """测试教材搜索 Tool"""
+
+    print("\n")
+    print("=" * 60)
+    print("第二部分：测试 Textbook Search Tool")
+    print("=" * 60)
+
+    question = "泰勒公式是什么？"
+
+    # 这里先使用测试用户 ID
+    user_id = 1
+
+    print(f"\n用户问题：{question}")
+    print(f"用户 ID：{user_id}")
+
+    result = textbook_search(
+        question=question,
+        user_id=user_id,
+        document_ids=None,
+        top_k=3
+    )
+
+    if not result:
+
+        print("\n❌ 没有搜索到教材内容")
+        return
+
+    print(f"\n✅ 搜索到 {len(result)} 条教材内容")
+
+    for index, item in enumerate(result, start=1):
+
+        print("\n" + "-" * 60)
+
+        print(f"结果 #{index}")
+
+        print(f"页码：{item.get('page')}")
+
+        print(f"来源：{item.get('source')}")
+
+        print(f"相似度：{item.get('score')}")
+
+        print(f"document_id：{item.get('document_id')}")
+
+        print("\n教材内容：")
+
+        print(item.get("text"))
+
+
+if __name__ == "__main__":
+
+    # 测试 Agent Router
+    test_router()
+
+    # 测试教材搜索 Tool
+    test_textbook_tool()

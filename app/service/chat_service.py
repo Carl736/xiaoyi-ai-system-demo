@@ -2,12 +2,11 @@ from openai import OpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.chat_schema import Question
 from app.config import settings
-from app.utils.embedding import get_embedding
-from app.vectorstore.faiss_db import vector_store
+
 from app.model.chat_history import ChatHistory
-from app.service.agent_service import should_search_textbook
+from app.service.agent_service import route_question
+from app.service.textbook_tool import textbook_search
 from typing import List,Optional
 client = OpenAI(
     api_key=settings.settings.deepseek_api_key,
@@ -51,30 +50,78 @@ async def get_chat_history(user_id:int,db:AsyncSession,limit:int=6):
 #3.核心问答函数，Agent+RAG
 async def ask_question(question:str,db:AsyncSession,user_id:int,document_ids:Optional[List[str]]=None):
     """
-       完整的 Agent 决策 + RAG 问答流程：
+    完整的 Agent + Tool + RAG 问答流程：
 
-       用户问题
-          ↓
-       Agent 判断：要不要搜教材？
-          ↓
-       不需要 → 直接通用问答
-       需要   → RAG 检索 + 阈值过滤 + LLM 生成
-       """
+    用户问题
+        ↓
+    Agent 路由
+        ↓
+    ┌───────────────────────┐
+    │                       │
+    ↓                       ↓
+general_chat         textbook_search
+    ↓                       ↓
+DeepSeek              Embedding
+                            ↓
+                           FAISS
+                            ↓
+                      教材检索结果
+                            ↓
+                        Context
+                            ↓
+                         DeepSeek
+                            ↓
+                         最终答案
+    """
 
     # ==========================================
     # 第一步：Agent 决策层
     # ==========================================
-    desecion=should_search_textbook(question)
+    decision=route_question(question)
 
-    if not desecion.get("need_search",True):
-        # 不需要搜教材，直接通用问答
-        return await ask_general(question,db,user_id)
+    tool_name=decision["tool"]
 
     # ==========================================
-    # 第二步：获取历史记录（用于上下文）
+    # 第二步：普通聊天
     # ==========================================
+
+    if tool_name =="general_chat":
+        return await ask_general(
+            question,
+            db,
+            user_id
+        )
+    # ==========================================
+    # 第三步：调用教材搜索 Tool
+    # ==========================================
+    elif tool_name=="textbook_search":
+        tool_result=textbook_search(
+            question=question,
+            user_id=user_id,
+            document_ids=document_ids,
+            top_k=3
+        )
+
+    else:
+        return"Agent 返回了未知工具"
+
+    # ==========================================
+    # 第四步：Tool 没有找到教材内容
+    # ==========================================
+
+    if not tool_result:
+        return "📚 教材中未找到相关内容。请确认您的问题是否与已上传教材有关，或尝试换个问法。"
+
+    # ==========================================
+    # 第五步：获取历史聊天记录
+    # ==========================================
+
 
     history=await get_chat_history(user_id,db)
+
+    # ==========================================
+    # 第六步：构建 messages
+    # ==========================================
 
     messages=[]
 
@@ -95,57 +142,66 @@ async def ask_question(question:str,db:AsyncSession,user_id:int,document_ids:Opt
 - 清晰
 - 有耐心
 - 像学姐
+
+回答教材相关问题时：
+1. 优先依据教材资料回答。
+2. 不要编造教材中不存在的内容。
+3. 如果引用教材内容，请标注页码。
+4. 如果教材资料不足，请明确说明。
 """
     })
+
+    # ==========================================
+    # 第七步：加入历史对话
+    # ==========================================
     for item in history:
         messages.append({
             "role":"user",
             "content":item.question
         })
 
+        messages.append({
+            "role":"assistant",
+            "content":item.answer
+        })
     # ==========================================
-    # 第三步：向量检索（带阈值过滤）
+    # 第八步：处理 Tool 返回结果
     # ==========================================
-    q_vec = get_embedding(question)#将文本根据预训练模型转化为对应向量
+    context_parts=[]
 
-    docs = vector_store.search(
-        q_vec,
-        top_k=3,
-        user_id=user_id,
-        document_ids=document_ids,
-        threshold=SIMILARITY_THRESHOLD# 👈 加上阈值
-    )#搜索相似的三个
+    for item in tool_result:
+        page=item["page"]
+        text=item["text"]
 
-
+    context_parts.append(
+        f"【教材第{page}页】\n{text}"
+    )
+    context = "\n\n".join(context_parts)
 
     # ==========================================
-    # 第四步：构建上下文（有/无检索结果）
+    # 第九步：构建最终 Prompt
     # ==========================================
-    if docs:
 
-        context_parts = []
-
-        for d in docs:
-            page_info = f"【第{d['page']}页】"
-
-            context_parts.append(
-                f"{page_info}{d['text']}"
-            )
-
-        context = "\n\n".join(
-            context_parts
-        )
-    else:
-        # 没有检索到相关内容 → 直接返回“不知道”
-        return "📚 教材中未找到相关内容。请确认您的问题是否与已上传教材有关，或尝试换个问法。"
     final_prompt = f"""
-    教材资料：
+    以下内容是教材搜索 Tool 返回的相关教材资料：
+
+    ====================
     {context}
+    ====================
 
     用户问题：
+
     {question}
 
-    请结合教材内容回答，如果引用了教材内容，在末尾标注页码。
+    请根据以上教材资料回答用户问题。
+
+    要求：
+
+    1. 优先依据教材资料回答。
+    2. 不要编造教材中不存在的内容。
+    3. 如果使用教材内容，请标注对应页码。
+    4. 如果教材资料不足，请明确说明。
+    5. 回答要清晰、易懂，并尽可能解释解题思路。
     """
 
     messages.append({
@@ -154,8 +210,9 @@ async def ask_question(question:str,db:AsyncSession,user_id:int,document_ids:Opt
     })
 
     # ==========================================
-    # 第六步：调用 DeepSeek
+    # 第十步：调用 DeepSeek 生成最终答案
     # ==========================================
+
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=messages,
@@ -163,22 +220,4 @@ async def ask_question(question:str,db:AsyncSession,user_id:int,document_ids:Opt
     )
 
     return response.choices[0].message.content
-
-# ==========================================
-# 4. 保存聊天记录（保留原有逻辑）
-# ==========================================
-async def save_chat(user_id:int,question:str,answer:str,db:AsyncSession):
-    #首先创建一个 ChatHistory 实例然后调用 db.add() 方法将这个实例添加到数据库会话中，最后调用 db.commit() 方法来提交事务，将数据保存到数据库中。
-    chat_history=ChatHistory(
-        user_id=user_id,
-        question=question,
-        answer=answer
-    )
-    db.add(chat_history)
-    await db.commit()
-    await db.refresh(chat_history)
-    return chat_history
-
-
-
 

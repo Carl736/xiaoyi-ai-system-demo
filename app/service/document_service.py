@@ -37,7 +37,7 @@ async def create_document(
 
 async def update_document_status(
         db:AsyncSession,
-        document_id:str,
+        document_id:int,
         status:DocumentStatus,
         total_pages:Optional[int]=None,
         total_chunks:Optional[int]=None
@@ -282,6 +282,32 @@ async def get_document_stats(
         "total_chunks":total_chunks,
     }
 
+async def get_user_documents_by_document_ids(
+    db: AsyncSession,
+    user_id: int,
+    document_ids: List[str],
+) -> List[Document]:
+    """
+    根据 document_id 查询当前用户拥有的教材。
+
+    只返回：
+    1. 属于当前用户的文档
+    2. document_id 在请求列表中的文档
+    3. 没有被软删除的文档
+    """
+
+    stmt = (
+        select(Document)
+        .where(
+            Document.user_id == user_id,
+            Document.document_id.in_(document_ids),
+            Document.status != DocumentStatus.DELETED,
+        )
+    )
+
+    result = await db.execute(stmt)
+
+    return list(result.scalars().all())
 
 
 
