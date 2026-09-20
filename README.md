@@ -1,102 +1,98 @@
-小奕 · 智能教学助手
-基于用户上传教材的 AI 问答助手 —— 只回答你教材里的内容，且能溯源到页码
-📖 项目背景
+# 小奕 · 智能教学助手
+
+> 基于用户上传教材的 AI 问答助手 —— 只回答你教材里的内容，且能溯源到页码。
+
+## 📖 项目背景
+
 大学生在学习过程中常遇到这些困扰：
 
-教材内容多，翻书找概念效率低
+- 教材内容多，翻书找概念效率低
+- 直接用 ChatGPT 提问，答案往往是通用知识，不符合自己学校教材的表述
+- 不同学校、不同专业教材不同，同一个概念的定义、符号、证明顺序可能完全不同
 
-直接用 ChatGPT 提问，答案往往是通用知识，不符合自己学校教材的表述
+**小奕** 的目标是：让用户上传自己的 PDF 教材，系统只从这本教材里检索内容，结合大模型生成回答，并标注页码。**不瞎编，能溯源。**
 
-不同学校、不同专业教材不同，同一个概念的定义、符号、证明顺序可能完全不同
+## ✨ 核心特性
 
-小奕 的目标是：让用户上传自己的 PDF 教材，系统只从这本教材里检索内容，结合大模型生成回答，并标注页码。不瞎编，能溯源。
+| 特性 | 说明 |
+| :--- | :--- |
+| 📚 知识库管理 | PDF 上传 → 解析 → 分块 → Embedding → FAISS 检索，全流程自动化 |
+| 🔍 RAG 问答 | 基于教材内容生成答案，返回页码，支持相似度阈值过滤（0.7） |
+| 🤖 Agent 决策 | 大模型自主判断是否调用工具（教材检索 / 计算器），而非固定流程 |
+| 🧠 对话记忆 | PostgreSQL 保存聊天记录，自动注入最近 6 轮对话作为上下文 |
+| 👤 用户系统 | 注册 / 登录 / JWT 认证，数据按 user_id 隔离 |
+| 📄 文档管理 | 教材列表、详情、统计、软删除；chunk_id 与 FAISS vector_id 一一对应 |
 
-✨ 核心特性
-特性	说明
-📚 知识库管理	PDF 上传 → 解析 → 分块 → Embedding → FAISS 检索，全流程自动化
-🔍 RAG 问答	基于教材内容生成答案，返回页码，支持相似度阈值过滤（0.7）
-🤖 Agent 决策	大模型自主判断是否调用工具（教材检索 / 计算器），而非固定流程
-🧠 对话记忆	PostgreSQL 保存聊天记录，自动注入最近 6 轮对话作为上下文
-👤 用户系统	注册 / 登录 / JWT 认证，数据按 user_id 隔离
-📄 文档管理	教材列表、详情、统计、软删除；chunk_id 与 FAISS vector_id 一一对应
-🏗️ 系统架构
+## 🏗️ 系统架构
+用户请求
+↓
+FastAPI（API 层）
+/api/users /api/upload /api/chat /api/documents
+↓
+Service 层
+chat_service pdf_service document_service
+agent_service textbook_tool calculator_tool
+↓
+数据 / AI 层
+PostgreSQL FAISS IndexIDMap DeepSeek LLM
+Document 向量检索 对话生成
+DocumentChunk Conversation Memory
+
 text
-┌─────────────────────────────────────────────────────────────┐
-│                        用户请求                              │
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    FastAPI  (API 层)                        │
-│   /api/users      /api/upload      /api/chat   /api/documents│
-└───────────────────────────┬─────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Service 层                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ chat_service │  │ pdf_service  │  │ document_service │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
-│         │                 │                    │            │
-│         ▼                 ▼                    ▼            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ agent_service│  │ chunking &   │  │  PostgreSQL      │  │
-│  │ textbook_tool│  │ embedding    │  │  Document        │  │
-│  │ calculator   │  │              │  │  DocumentChunk   │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────────────────┘  │
-│         │                 │                    │            │
-│         ▼                 ▼                    ▼            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │  DeepSeek    │  │  FAISS       │  │  Conversation    │  │
-│  │  LLM API     │  │  IndexIDMap  │  │  Memory          │  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-🛠️ 技术栈
-分类	技术
-后端框架	Python 3.10+, FastAPI, Uvicorn
-数据库	PostgreSQL, SQLAlchemy (async), asyncpg, Redis (基础)
-AI / RAG	Sentence-Transformers (384维), FAISS (IndexIDMap), DeepSeek API
-Agent	LLM Tool Calling, Tool Schema, Conversation Memory
-运维	Linux, Git, Docker (基础)
-📁 项目结构
-text
+
+## 🛠️ 技术栈
+
+| 分类 | 技术 |
+| :--- | :--- |
+| 后端框架 | Python 3.10+, FastAPI, Uvicorn |
+| 数据库 | PostgreSQL, SQLAlchemy (async), asyncpg, Redis (基础) |
+| AI / RAG | Sentence-Transformers (384维), FAISS (IndexIDMap), DeepSeek API |
+| Agent | LLM Tool Calling, Tool Schema, Conversation Memory |
+| 运维 | Linux, Git, Docker (基础) |
+
+## 📁 项目结构
 xiaoyi-ai-system-demo/
 ├── app/
-│   ├── api/                    # 路由层
-│   │   ├── chat.py             # 聊天接口 /api/chat/ask
-│   │   ├── user.py             # 用户接口 /api/users
-│   │   ├── pdf.py              # PDF 上传 /api/upload/pdf
-│   │   └── document.py         # 文档管理 /api/documents
-│   ├── service/                # 业务逻辑层
-│   │   ├── chat_service.py     # RAG 问答核心
-│   │   ├── pdf_service.py      # PDF 解析 + 分块 + Embedding
-│   │   ├── document_service.py # 文档管理
-│   │   ├── agent_service.py    # Agent 决策
-│   │   ├── textbook_tool.py    # 教材检索工具
-│   │   ├── calculator_tool.py  # 计算器工具
-│   │   └── memory_service.py   # 对话记忆
-│   ├── model/                  # 数据库模型
-│   │   ├── user.py
-│   │   ├── chat_history.py
-│   │   └── document.py
-│   ├── schemas/                # Pydantic 模式
-│   ├── vectorstore/            # FAISS 向量存储
-│   │   └── faiss_db.py
-│   ├── utils/                  # 工具函数
-│   │   ├── chunking.py
-│   │   └── embedding.py
-│   ├── db/                     # 数据库连接
-│   │   └── database.py
-│   └── main.py                 # 入口
-├── tests/                      # 测试脚本
-│   ├── test_agent.py
-│   └── test_tool_calling.py
+│ ├── api/ # 路由层
+│ │ ├── chat.py # 聊天接口 /api/chat/ask
+│ │ ├── user.py # 用户接口 /api/users
+│ │ ├── pdf.py # PDF 上传 /api/upload/pdf
+│ │ └── document.py # 文档管理 /api/documents
+│ ├── service/ # 业务逻辑层
+│ │ ├── chat_service.py # RAG 问答核心
+│ │ ├── pdf_service.py # PDF 解析 + 分块 + Embedding
+│ │ ├── document_service.py # 文档管理
+│ │ ├── agent_service.py # Agent 决策
+│ │ ├── textbook_tool.py # 教材检索工具
+│ │ ├── calculator_tool.py # 计算器工具
+│ │ └── memory_service.py # 对话记忆
+│ ├── model/ # 数据库模型
+│ │ ├── user.py
+│ │ ├── chat_history.py
+│ │ └── document.py
+│ ├── schemas/ # Pydantic 模式
+│ ├── vectorstore/ # FAISS 向量存储
+│ │ └── faiss_db.py
+│ ├── utils/ # 工具函数
+│ │ ├── chunking.py
+│ │ └── embedding.py
+│ ├── db/ # 数据库连接
+│ │ └── database.py
+│ └── main.py # 入口
+├── tests/ # 测试脚本
+│ ├── test_agent.py
+│ └── test_tool_calling.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
-🚀 快速开始
-1. 克隆项目
-bash
+
+text
+
+## 🚀 快速开始
+
+### 1. 克隆项目
+
+```bash
 git clone https://github.com/Carl736/xiaoyi-ai-system-demo.git
 cd xiaoyi-ai-system-demo
 2. 创建虚拟环境
@@ -139,7 +135,7 @@ user_id 数据隔离：FAISS 检索时过滤 metadata，保证用户只能搜到
 
 chunk_id 与 FAISS vector_id 一一对应：PostgreSQL 管理业务数据，FAISS 负责向量检索，双向可追溯。
 
-Agent 决策层：通过 Prompt Engineering 让 DeepSeek 自主判断“是否需要搜教材”，而非固定流程。
+Agent 决策层：通过 Prompt Engineering 让 DeepSeek 自主判断"是否需要搜教材"，而非固定流程。
 
 异步全链路：FastAPI + asyncpg + SQLAlchemy async，PDF 解析放入线程池避免阻塞事件循环。
 
