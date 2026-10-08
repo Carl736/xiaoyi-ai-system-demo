@@ -1,5 +1,3 @@
-# app/service/document_service.py
-
 from typing import List, Optional, Dict, Any
 
 from sqlalchemy import select, update, func
@@ -10,6 +8,8 @@ from app.model.document import (
     DocumentChunk,
     DocumentStatus,
 )
+
+from app.vectorstore.faiss_db import vector_store
 
 async def create_document(
         db:AsyncSession,
@@ -308,6 +308,4 @@ async def get_user_documents_by_document_ids(
     result = await db.execute(stmt)
 
     return list(result.scalars().all())
-
-
 

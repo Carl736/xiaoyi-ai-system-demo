@@ -1,87 +1,93 @@
-# test_agent.py
+import asyncio
 
-from app.service.agent_service import route_question
-from app.service.textbook_tool import textbook_search
-
-
-def test_router():
-    """测试 Agent 路由"""
-
-    print("=" * 60)
-    print("第一部分：测试 Agent Router")
-    print("=" * 60)
-
-    questions = [
-        "你好呀",
-        "你叫什么名字？",
-        "泰勒公式是什么？",
-        "教材中的洛必达法则怎么使用？",
-        "书上第三章主要讲什么？",
-    ]
-
-    for question in questions:
-
-        print(f"\n用户问题：{question}")
-
-        result = route_question(question)
-
-        print(f"选择 Tool：{result.get('tool')}")
-        print(f"判断理由：{result.get('reason')}")
+from app.db.database import AsyncSessionLocal
+from app.model.user import User
+from app.service.agent_service import run_agent
+from app.service.chat_service import save_chat
 
 
-def test_textbook_tool():
-    """测试教材搜索 Tool"""
+async def test_agent():
 
-    print("\n")
-    print("=" * 60)
-    print("第二部分：测试 Textbook Search Tool")
-    print("=" * 60)
+    async with AsyncSessionLocal() as db:
 
-    question = "泰勒公式是什么？"
+        # ==========================================
+        # 测试 1：普通聊天 + Memory
+        # ==========================================
 
-    # 这里先使用测试用户 ID
-    user_id = 1
+        print("\n==============================")
+        print("测试 1：普通聊天 + Memory")
+        print("==============================")
 
-    print(f"\n用户问题：{question}")
-    print(f"用户 ID：{user_id}")
+        question1 = "你好，你叫什么名字？"
 
-    result = textbook_search(
-        question=question,
-        user_id=user_id,
-        document_ids=None,
-        top_k=3
-    )
+        answer1 = await run_agent(
+            question=question1,
+            user_id=1,
+            db=db,
+        )
 
-    if not result:
+        print("\n用户：", question1)
+        print("小奕：", answer1)
 
-        print("\n❌ 没有搜索到教材内容")
-        return
+        await save_chat(
+            db=db,
+            user_id=1,
+            question=question1,
+            answer=answer1,
+        )
 
-    print(f"\n✅ 搜索到 {len(result)} 条教材内容")
+        # ==========================================
+        # 测试 2：Calculator Tool
+        # ==========================================
 
-    for index, item in enumerate(result, start=1):
+        print("\n==============================")
+        print("测试 2：Calculator Tool")
+        print("==============================")
 
-        print("\n" + "-" * 60)
+        question2 = "帮我计算 123 × 456"
 
-        print(f"结果 #{index}")
+        answer2 = await run_agent(
+            question=question2,
+            user_id=1,
+            db=db,
+        )
 
-        print(f"页码：{item.get('page')}")
+        print("\n用户：", question2)
+        print("小奕：", answer2)
 
-        print(f"来源：{item.get('source')}")
+        await save_chat(
+            db=db,
+            user_id=1,
+            question=question2,
+            answer=answer2,
+        )
 
-        print(f"相似度：{item.get('score')}")
+        # ==========================================
+        # 测试 3：教材 Tool
+        # ==========================================
 
-        print(f"document_id：{item.get('document_id')}")
+        print("\n==============================")
+        print("测试 3：Textbook Search Tool")
+        print("==============================")
 
-        print("\n教材内容：")
+        question3 = "教材中的泰勒公式是什么？"
 
-        print(item.get("text"))
+        answer3 = await run_agent(
+            question=question3,
+            user_id=1,
+            db=db,
+        )
+
+        print("\n用户：", question3)
+        print("小奕：", answer3)
+
+        await save_chat(
+            db=db,
+            user_id=1,
+            question=question3,
+            answer=answer3,
+        )
 
 
 if __name__ == "__main__":
-
-    # 测试 Agent Router
-    test_router()
-
-    # 测试教材搜索 Tool
-    test_textbook_tool()
+    asyncio.run(test_agent())

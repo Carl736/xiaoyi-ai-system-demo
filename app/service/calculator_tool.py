@@ -2,72 +2,109 @@ import ast
 import operator
 
 
-OPERATORS = {
+_ALLOWED_OPERATORS = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
     ast.Div: operator.truediv,
     ast.Pow: operator.pow,
-    ast.USub: operator.neg,
 }
 
 
-def calculate(expression: str):
+def _eval_node(node):
+
+    # 数字
+    if isinstance(node, ast.Constant):
+
+        if isinstance(
+                node.value,
+                (int, float)
+        ):
+            return node.value
+
+        raise ValueError(
+            "只允许数字"
+        )
+
+    # 正负号
+    if isinstance(node, ast.UnaryOp):
+
+        if isinstance(
+                node.op,
+                ast.USub
+        ):
+            return -_eval_node(
+                node.operand
+            )
+
+        if isinstance(
+                node.op,
+                ast.UAdd
+        ):
+            return _eval_node(
+                node.operand
+            )
+
+        raise ValueError(
+            "不支持的运算符"
+        )
+
+    # 二元运算
+    if isinstance(node, ast.BinOp):
+
+        operator_func = _ALLOWED_OPERATORS.get(
+            type(node.op)
+        )
+
+        if operator_func is None:
+            raise ValueError(
+                "不支持的运算符"
+            )
+
+        left = _eval_node(
+            node.left
+        )
+
+        right = _eval_node(
+            node.right
+        )
+
+        return operator_func(
+            left,
+            right
+        )
+
+    raise ValueError(
+        "表达式包含不允许的内容"
+    )
+
+
+def calculator(
+        expression: str
+):
     """
-    安全计算数学表达式。
-
-    支持：
-    + - * / **
-    以及括号和负数。
-
-    不使用 eval()。
+    安全数学计算工具。
     """
-
-    def _calculate(node):
-
-        # 数字
-        if isinstance(node, ast.Constant):
-
-            if isinstance(node.value, (int, float)):
-                return node.value
-
-            raise ValueError("只允许数字")
-
-        # 二元运算
-        if isinstance(node, ast.BinOp):
-
-            operator_func = OPERATORS.get(type(node.op))
-
-            if operator_func is None:
-                raise ValueError("不支持的运算符")
-
-            left = _calculate(node.left)
-            right = _calculate(node.right)
-
-            return operator_func(left, right)
-
-        # 一元运算，例如 -5
-        if isinstance(node, ast.UnaryOp):
-
-            operator_func = OPERATORS.get(type(node.op))
-
-            if operator_func is None:
-                raise ValueError("不支持的运算符")
-
-            operand = _calculate(node.operand)
-
-            return operator_func(operand)
-
-        raise ValueError("不支持的表达式")
 
     try:
 
-        tree = ast.parse(expression, mode="eval")
+        tree = ast.parse(
+            expression,
+            mode="eval"
+        )
 
-        return _calculate(tree.body)
+        result = _eval_node(
+            tree.body
+        )
 
-    except ZeroDivisionError:
-        raise ValueError("除数不能为 0")
+        return {
+            "expression": expression,
+            "result": result
+        }
 
-    except SyntaxError:
-        raise ValueError("数学表达式格式错误")
+    except Exception as e:
+
+        return {
+            "expression": expression,
+            "error": str(e)
+        }
