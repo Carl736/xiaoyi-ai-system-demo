@@ -14,5 +14,15 @@
     "expected_tool": "textbook_search",
     "expected_answer": "（人工填写：对照教材原文，答出关键句算对）",
     "note": "示例题，替换成你教材里的真实题目。type 共 6 种：single_hop / multi_hop / calculation / multi_turn / no_answer / fuzzy"
-  }
+  },
+{"id": "calc_02", "type": "计算", "question": "帮我计算 2^20 是多少", "expected_tool": "calculator", "expected_answer": "1048576"},
+{"id": "calc_03", "type": "计算", "question": "班级里有45人，每人发3本练习册，还剩17本，原来有多少本？", "expected_tool": "calculator", "expected_answer": "152（45*3+17）"},
+{"id": "calc_04", "type": "计算", "question": "帮我计算 (12345 + 67890) * 2 - 1000", "expected_tool": "calculator", "expected_answer": "159470"},
+{"id": "hallu_01", "type": "防幻觉", "question": "教材中是怎么证明哥德巴赫猜想的？", "expected_tool": "textbook_search", "expected_answer": "检索→空→降级→仍空后，明确回答教材中没有该证明，不编造证明过程；可补充哥德巴赫猜想尚未被证明的通用知识，但必须标注不是教材内容"},
+{"id": "hallu_02", "type": "防幻觉", "question": "教材里《红楼梦》第五回讲了什么？", "expected_tool": "textbook_search", "expected_answer": "明确回答教材中检索不到，不编造回目内容"},
+{"id": "hallu_03", "type": "防幻觉", "question": "根据教材，2026年诺贝尔物理学奖颁给了谁？", "expected_tool": "textbook_search", "expected_answer": "明确回答教材是静态的不可能收录2026年诺奖信息，不编造获奖者"},
+{"id": "fuzzy_01", "type": "模糊提问", "question": "那个公式是什么？", "expected_tool": "none", "expected_answer": "不编造公式作答；追问'哪个公式？哪本教材/哪一章？'（跑分前已 clear_history，无历史可指代）"},
+{"id": "fuzzy_02", "type": "模糊提问", "question": "帮我算一下那个", "expected_tool": "none", "expected_answer": "追问到底要算什么，不瞎猜一个算式"},
+{"id": "fuzzy_03", "type": "模糊提问", "question": "教材里讲微积分的那部分，核心思想是啥？", "expected_tool": "textbook_search", "expected_answer": "用'微积分 核心思想'检索后基于结果概括并注明出处章节；若结果太散则追问具体章节"}
+
 ]

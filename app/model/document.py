@@ -28,7 +28,8 @@ class Document(Base):
         Index("idx_document_created_at", "created_at"),#意思是在document表中创建一个索引，索引名为idx_document_created_at，索引的列是created_at，这样可以加快根据created_at查询文档的速度
     )
     id:Mapped[int]=mapped_column(Integer,primary_key=True,autoincrement=True)#auto_increment=True表示id会自动递增
-    user_id:Mapped[int]=mapped_column(Integer,ForeignKey("user_id"),nullable=False)#外键关联用户表的id，表示这个文档属于哪个用户
+    user_id:Mapped[int]=mapped_column(Integer,ForeignKey("user.id"),nullable=False)#外键关联用户表的id，表示这个文档属于哪个用户
+
 
 #id 是数据库内部用的，从 1、2、3 开始，是连号的。如果对外暴露，别人就能猜到你系统里有多少用户、多少文档。
 #document_id 是 UUID（比如 a3f4b2c1-...），不可预测，可以安全地暴露给前端。

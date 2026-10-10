@@ -186,7 +186,7 @@ async def process_pdf(
     # =========================
         await update_document_status(
             db=db,
-            document_id=document_id,
+            document_id=document.id,
             status=DocumentStatus.PROCESSING,
         )
 
