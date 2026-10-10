@@ -23,6 +23,24 @@
 {"id": "hallu_03", "type": "防幻觉", "question": "根据教材，2026年诺贝尔物理学奖颁给了谁？", "expected_tool": "textbook_search", "expected_answer": "明确回答教材是静态的不可能收录2026年诺奖信息，不编造获奖者"},
 {"id": "fuzzy_01", "type": "模糊提问", "question": "那个公式是什么？", "expected_tool": "none", "expected_answer": "不编造公式作答；追问'哪个公式？哪本教材/哪一章？'（跑分前已 clear_history，无历史可指代）"},
 {"id": "fuzzy_02", "type": "模糊提问", "question": "帮我算一下那个", "expected_tool": "none", "expected_answer": "追问到底要算什么，不瞎猜一个算式"},
-{"id": "fuzzy_03", "type": "模糊提问", "question": "教材里讲微积分的那部分，核心思想是啥？", "expected_tool": "textbook_search", "expected_answer": "用'微积分 核心思想'检索后基于结果概括并注明出处章节；若结果太散则追问具体章节"}
-
+{"id": "fuzzy_03", "type": "模糊提问", "question": "教材里讲微积分的那部分，核心思想是啥？", "expected_tool": "textbook_search", "expected_answer": "用'微积分 核心思想'检索后基于结果概括并注明出处章节；若结果太散则追问具体章节"},
+ {"id": "single_02", "type": "单跳", "question": "教材中麦克劳林公式的内容是什么？", "expected_tool": "textbook_search", "expected_answer": "泰勒公式在 x0=0 时的特例：f(x) = f(0) + f'(0)x + f''(0)/2!·x^2 + … + f^(n)(0)/n!·x^n + R_n(x)"},
+  {"id": "single_03", "type": "单跳", "question": "教材中佩亚诺余项是什么？", "expected_tool": "textbook_search", "expected_answer": "R_n(x) = o((x-x0)^n)，余项是比 (x-x0)^n 高阶的无穷小"},
+  {"id": "single_04", "type": "单跳", "question": "教材中拉格朗日余项的形式是什么？", "expected_tool": "textbook_search", "expected_answer": "R_n(x) = f^(n+1)(ξ)/(n+1)!·(x-x0)^(n+1)，ξ 介于 x0 与 x 之间"},
+  {"id": "single_05", "type": "单跳", "question": "教材中泰勒公式有哪些应用？", "expected_tool": "textbook_search", "expected_answer": "近似计算、求极限、误差估计"},
+  {"id": "single_06", "type": "单跳", "question": "教材中 e^x 的麦克劳林展开式是什么？", "expected_tool": "textbook_search", "expected_answer": "e^x = 1 + x + x^2/2! + … + x^n/n! + o(x^n)"},
+  {"id": "single_07", "type": "单跳", "question": "教材中 sin x 的麦克劳林展开式是什么？", "expected_tool": "textbook_search", "expected_answer": "sin x = x - x^3/3! + x^5/5! - …"},
+  {"id": "single_08", "type": "单跳", "question": "教材中牛顿-莱布尼茨公式的内容是什么？", "expected_tool": "textbook_search", "expected_answer": "∫[a,b] f(x)dx = F(b) - F(a)，f 在 [a,b] 连续、F 是原函数"},
+  {"id": "single_09", "type": "单跳", "question": "教材中泰勒多项式是指什么？", "expected_tool": "textbook_search", "expected_answer": "泰勒公式的前 n+1 项"},
+  {"id": "single_10", "type": "单跳", "question": "教材中 ln(1+x) 的麦克劳林展开式是什么？", "expected_tool": "textbook_search", "expected_answer": "x - x^2/2 + x^3/3 - …，其中 x > -1"},
+  {"id": "multi_01", "type": "多跳", "question": "泰勒公式和麦克劳林公式是什么关系？", "expected_tool": "textbook_search", "expected_answer": "麦克劳林公式是泰勒公式在 x0=0 时的特例；泰勒公式是麦克劳林公式的推广"},
+  {"id": "multi_02", "type": "多跳", "question": "佩亚诺余项和拉格朗日余项有什么区别？", "expected_tool": "textbook_search", "expected_answer": "佩亚诺余项只给出阶数 o((x-x0)^n)；拉格朗日余项给出具体表达式，可用于误差估计"},
+  {"id": "multi_03", "type": "多跳", "question": "什么时候用麦克劳林公式更简便，什么时候必须用泰勒公式？", "expected_tool": "textbook_search", "expected_answer": "关心原点附近性质时用麦克劳林更简便；关心某点 x0 附近局部性质时用泰勒公式"},
+  {"id": "multi_04", "type": "多跳", "question": "sin x 和 cos x 的麦克劳林展开式有什么联系？", "expected_tool": "textbook_search", "expected_answer": "cos x 是 sin x 的导数，两者的展开式逐项求导对应"},
+  {"id": "multi_05", "type": "多跳", "question": "教材中泰勒公式的三个应用分别是什么意思？", "expected_tool": "textbook_search", "expected_answer": "近似计算（多项式近似超越函数值）、求极限（展开后约去低阶项）、误差估计（拉格朗日余项给出误差界）"},
+  {"id": "multi_06", "type": "多跳", "question": "牛顿-莱布尼茨公式把什么问题转化成了什么问题？为什么说它重要？", "expected_tool": "textbook_search", "expected_answer": "把求定积分转化为求原函数在端点处的差值；建立了定积分与不定积分（原函数）的联系"},
+  {"id": "turn_01", "type": "多轮", "question": "它有什么应用？", "context_turns": ["泰勒公式是什么？"], "expected_tool": "textbook_search", "expected_answer": "近似计算、求极限、误差估计（“它”指泰勒公式）"},
+  {"id": "turn_02", "type": "多轮", "question": "它和泰勒公式是什么关系？", "context_turns": ["麦克劳林公式是什么？"], "expected_tool": "textbook_search", "expected_answer": "麦克劳林公式是泰勒公式在 x0=0 时的特例"},
+  {"id": "turn_03", "type": "多轮", "question": "它有什么用？", "context_turns": ["拉格朗日余项是什么？"], "expected_tool": "textbook_search", "expected_answer": "用于误差估计，给出近似值误差的具体表达式"},
+  {"id": "turn_04", "type": "多轮", "question": "为什么说这个公式重要？", "context_turns": ["牛顿-莱布尼茨公式是什么？"], "expected_tool": "textbook_search", "expected_answer": "建立了定积分与原函数的联系，是微积分最重要的公式之一"}
 ]

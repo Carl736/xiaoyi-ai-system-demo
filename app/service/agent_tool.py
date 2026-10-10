@@ -164,7 +164,7 @@ RETRY_BASE_DELAY = 1.0   # 退避基数（秒）：第 1 次等 1s，第 2 次�
 
 # 降级参数：放宽到什么程度目前是拍脑袋定的，
 # 后续可以用 eval 对照（0.5 / 0.6 / 0.7）验证
-DEGRADED_THRESHOLD = 0.5
+DEGRADED_THRESHOLD = 0.15
 
 
 async def _execute_with_retry(
@@ -238,7 +238,9 @@ async def execute_tool_resilient(
         degraded_args = dict(arguments)
         degraded_args["top_k"] = arguments.get("top_k", 3) * 2
         degraded_args["threshold"] = DEGRADED_THRESHOLD
-        print(">>> 触发降级：top_k 翻倍，阈值降到 0.5，重查一次")
+        print(f">>> 触发降级：top_k 翻倍，阈值降到 {DEGRADED_THRESHOLD}，重查一次")
+
+
 
         degraded = await _execute_with_retry(
             tool_name=tool_name,

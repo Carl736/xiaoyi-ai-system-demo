@@ -51,7 +51,8 @@ def main():
 
     # 指标 5：无答案题兜底率。
     # correct 由人工判：明确承认"教材里没找到"算对，编了答案算错。
-    no_ans = [r for r in results if r["type"] == "no_answer"]
+    no_ans = [r for r in results if r["type"] in ("no_answer", "防幻觉")]
+
     deny_rate = sum(1 for r in no_ans if r["correct"]) / len(no_ans) if no_ans else 0.0
 
     print(f"测试集：{n} 题（{path.name}）")

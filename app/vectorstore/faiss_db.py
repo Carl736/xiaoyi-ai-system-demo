@@ -3,6 +3,18 @@ import numpy as np #高效数组操作，FASSI数据通常以NumPy数组形式�
 import pickle #序列化元数据列表
 from pathlib import Path #面向对象的路径操作
 from typing import Dict, List, Optional#类型注解，Dict表示字典，List表示列表，Optional表示可选类型
+# 项目根目录锚定：从文件位置反推，不依赖进程启动时的工作目录
+# __file__ = app/vectorstore/faiss_db.py，parent 上三级 = 项目根目录
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _resolve_index_path(path: str) -> Path:
+    """索引路径解析：相对路径按项目根目录算，绝对路径原样返回。"""
+    p = Path(path)
+    if not p.is_absolute():
+        p = _PROJECT_ROOT / p
+    return p
+
 class FAISSVectorStore:
     def __init__(
         self,
@@ -271,7 +283,7 @@ class FAISSVectorStore:
                 path:
                     data/vectors/faiss_index
                 """
-        path = Path(path)#Path() 是 Python 专门处理文件路径的“高级导航仪”。它把普通字符串变成一个有智能方法的对象。
+        path = _resolve_index_path(path)#Path() 是 Python 专门处理文件路径的“高级导航仪”。它把普通字符串变成一个有智能方法的对象。
 
         #path.parent：找路径的“爸爸”（上一级目录）。比如 data/vectors/faiss_index 的爸爸是 data/vectors。
         #.mkdir()：就是 “Make Directory”（创建目录）
@@ -321,7 +333,8 @@ class FAISSVectorStore:
         从磁盘加载 FAISS。
         """
 
-        path = Path(path)
+        path = _resolve_index_path(path)
+
 
         faiss_path = Path(
             str(path) + ".faiss"

@@ -4,7 +4,7 @@ from app.utils.embedding import get_embedding
 from app.vectorstore.faiss_db import vector_store
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.service.document_service import get_user_documents_by_document_ids
-SIMILARITY_THRESHOLD=0.7
+SIMILARITY_THRESHOLD=0.25
 
 async def textbook_search(
         question:str,

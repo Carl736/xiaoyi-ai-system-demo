@@ -18,6 +18,10 @@ from pathlib import Path
 from app.db.database import AsyncSessionLocal
 from app.service.agent_service import run_agent
 from app.service.chat_service import save_chat
+from app.model.user import User  # noqa: F401，让 user 表注册进 metadata，否则 chat_history 的外键找不到目标表
+from app.vectorstore.faiss_db import vector_store
+vector_store.load("data/vectors/faiss_index")
+print("FAISS 向量数:", vector_store.index.ntotal)
 
 # ================= 配置区（跑之前确认这三处） =================
 EVAL_DIR = Path(__file__).parent
