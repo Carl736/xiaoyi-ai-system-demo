@@ -19,7 +19,7 @@ async def main():
         )
 
         print("最终回答：")
-        print(result)
+        print(result["answer"])
 
         print("\n==============================")
         print("测试 2：教材问题")
@@ -34,6 +34,10 @@ async def main():
             user_id=1,
             db=db,
         )
+
+        print("最终回答：")
+        print(result["answer"])
+
         print("\n==============================")
         print("测试 4：计算器异常")
         print("==============================")
@@ -43,6 +47,10 @@ async def main():
             user_id=1,
             db=db,
         )
+
+        print("最终回答：")
+        print(result["answer"])
+
         print("\n==============================")
         print("测试 5：非法数学表达式")
         print("==============================")
@@ -54,11 +62,7 @@ async def main():
         )
 
         print("最终回答：")
-        print(result)
-        print("最终回答：")
-        print(result)
-        print("最终回答：")
-        print(result)
+        print(result["answer"])
 
 
 if __name__ == "__main__":

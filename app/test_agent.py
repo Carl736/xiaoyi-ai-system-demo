@@ -20,11 +20,13 @@ async def test_agent():
 
         question1 = "你好，你叫什么名字？"
 
-        answer1 = await run_agent(
+        # run_agent 现在返回 dict，["answer"] 才是答案字符串
+        result1 = await run_agent(
             question=question1,
             user_id=1,
             db=db,
         )
+        answer1 = result1["answer"]
 
         print("\n用户：", question1)
         print("小奕：", answer1)
@@ -46,11 +48,13 @@ async def test_agent():
 
         question2 = "帮我计算 123 × 456"
 
-        answer2 = await run_agent(
+        # run_agent 现在返回 dict，["answer"] 才是答案字符串
+        result2 = await run_agent(
             question=question2,
             user_id=1,
             db=db,
         )
+        answer2 = result2["answer"]
 
         print("\n用户：", question2)
         print("小奕：", answer2)
@@ -72,11 +76,13 @@ async def test_agent():
 
         question3 = "教材中的泰勒公式是什么？"
 
-        answer3 = await run_agent(
+        # run_agent 现在返回 dict，["answer"] 才是答案字符串
+        result3 = await run_agent(
             question=question3,
             user_id=1,
             db=db,
         )
+        answer3 = result3["answer"]
 
         print("\n用户：", question3)
         print("小奕：", answer3)

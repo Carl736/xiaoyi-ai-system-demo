@@ -21,14 +21,16 @@ async def ask_question(
     3. 返回最终答案
     """
 
-    answer = await run_agent(
+    # run_agent 现在返回 dict（含 answer 和执行统计），
+    # 这里只取出 answer 对外返回，API 层不用改。
+    result = await run_agent(
         question=question,
         user_id=user_id,
         db=db,
         document_ids=document_ids,
     )
 
-    return answer
+    return result["answer"]
 
 
 async def save_chat(

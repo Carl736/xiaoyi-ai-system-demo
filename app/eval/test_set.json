@@ -1,0 +1,18 @@
+[
+  {
+    "id": "calc_01",
+    "type": "calculation",
+    "question": "帮我计算 123456789 * 987654321",
+    "expected_tool": "calculator",
+    "expected_answer": "121932631112635269",
+    "note": "大数乘法，LLM 心算必错，必须调 calculator。expected_tool 是算'工具选择正确率'用的"
+  },
+  {
+    "id": "single_01",
+    "type": "single_hop",
+    "question": "教材中的泰勒公式是什么？",
+    "expected_tool": "textbook_search",
+    "expected_answer": "（人工填写：对照教材原文，答出关键句算对）",
+    "note": "示例题，替换成你教材里的真实题目。type 共 6 种：single_hop / multi_hop / calculation / multi_turn / no_answer / fuzzy"
+  }
+]

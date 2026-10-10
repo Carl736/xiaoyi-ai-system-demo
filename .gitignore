@@ -50,3 +50,4 @@ htmlcov/
 # data/vectors/     # 如果不想上传 FAISS 索引
 # 系统文件
 .DS_Store
+app/eval/results_*.json

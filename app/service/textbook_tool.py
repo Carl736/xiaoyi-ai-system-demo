@@ -12,6 +12,7 @@ async def textbook_search(
         db:AsyncSession,
         document_ids:Optional[List[str]]=None,
         top_k:int=3,
+        threshold:float=SIMILARITY_THRESHOLD,
 ):
     """
         教材检索工具
@@ -56,7 +57,7 @@ async def textbook_search(
         top_k=top_k,
         user_id=user_id,
         document_ids=document_ids,
-        threshold=SIMILARITY_THRESHOLD,
+        threshold=threshold,
     )
 
     #3没找到
