@@ -3,7 +3,7 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.chat_history import ChatHistory
-from app.service.agent_service import run_agent
+from app.service.agent_service import collect_agent_stream
 
 
 async def ask_question(
@@ -21,9 +21,8 @@ async def ask_question(
     3. 返回最终答案
     """
 
-    # run_agent 现在返回 dict（含 answer 和执行统计），
-    # 这里只取出 answer 对外返回，API 层不用改。
-    result = await run_agent(
+    # 消费流式 Agent 的 done 事件，保持 API 层返回字符串。
+    result = await collect_agent_stream(
         question=question,
         user_id=user_id,
         db=db,

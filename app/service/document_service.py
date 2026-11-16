@@ -9,7 +9,7 @@ from app.model.document import (
     DocumentStatus,
 )
 
-from app.vectorstore.faiss_db import vector_store
+
 
 async def create_document(
         db:AsyncSession,

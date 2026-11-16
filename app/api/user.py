@@ -1,6 +1,7 @@
+#路由返回的东西是给“发送http请求的一方”看的，主要是前端或用户
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.database import get_db
+from app.db. database import get_db
 from app.schemas.user_schema import UserRequest,UserAuthResponse,UserInfoResponse,UserUpdateRequest,UserChangePwdRequest
 from app.service import user_service
 
@@ -19,7 +20,7 @@ async def register(userdata:UserRequest,db:AsyncSession=Depends(get_db)):
         raise HTTPException(status_code=400, detail="用户名已存在")
     user=await user_service.create_user(db,userdata)
     token=await user_service.create_token(db,user.id)
-    response_data=UserAuthResponse(token=token,user_info=UserInfoResponse.model_validate(user))
+    response_data=UserAuthResponse(token=token,user_info=UserInfoResponse.model_validate(user))#model_validate:将user按照UserInfoResponse的格式进行验证和转换，user里面含pwd，但是转换为UserInfoResponse就没有了
     return response_data
 
 #用户登录：参数（用户名+密码）-》验证参数-》检查用户是否存在（不存在报错：用户名或密码错误）-》验证密码（错误报错：用户名或密码错误）-》创建token-》响应结果

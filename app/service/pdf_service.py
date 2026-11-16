@@ -10,12 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.document import DocumentStatus
 
-from app.service.document_service import (
-    create_document,
-    update_document_status,
-    save_document_chunks,
-    update_chunk_vector_id
-)
 # =========================
 # PDF 保存目录
 # =========================

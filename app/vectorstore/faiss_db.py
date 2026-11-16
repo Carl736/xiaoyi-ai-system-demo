@@ -166,11 +166,11 @@ class FAISSVectorStore:
     #top_k:返回最相似的结果个数
     def search(
             self,
-            query_vector,
+            query_vector,#用户问题经过embedding得到的向量
             top_k=3,
             user_id: Optional[int] = None,
             document_ids:Optional[List[str]]=None,
-            threshold: Optional[float] = None
+            threshold: Optional[float] = None#相似度阈值
     ) -> List[Dict]:
         """
                 相似度搜索。
@@ -185,12 +185,13 @@ class FAISSVectorStore:
             return []
         query = self._prepare_vectors(
             query_vector
-        )
+        )#讲问题向量化
 
         # 如果需要 user_id 过滤，
         # 多搜索一些结果，避免过滤后数量不足。
         search_k = top_k
 
+        #如果有用户过滤或者教材隔离其中之一开启这步
         if user_id is not None or document_ids is not None:
             search_k = min(
                 max(top_k * 5, 20),#取top_k*5和20的最大值

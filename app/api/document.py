@@ -94,7 +94,7 @@ async def document_stats(
     """
        获取某个教材的详细信息，包括 Chunk。
        """
-    doc =  await get_document_by_id(
+    doc =await get_document_by_id(
         db=db,
         document_id=document_id,
         user_id=user.id,

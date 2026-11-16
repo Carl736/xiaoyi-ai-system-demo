@@ -29,20 +29,20 @@ async def create_user(db:AsyncSession,user_data:UserRequest):
     return user
 async def create_token(db:AsyncSession,user_id:int):
     token=str(uuid.uuid4())
-    exprir_at=datetime.now()+timedelta(days=7,hours=2)
+    exprire_at=datetime.now()+timedelta(days=7,hours=2)
     stmt=select(UserToken).where(UserToken.user_id==user_id)
     result=await db.execute(stmt)
     user_token=result.scalar_one_or_none()
     #如果有则更新
     if user_token:
         user_token.token=token
-        user_token.expires_at=exprir_at
+        user_token.expires_at=exprire_at
     #如果没有则创建·
     else:
         user_token=UserToken(
             user_id=user_id,
             token=token,
-            expires_at=exprir_at
+            expires_at=exprire_at
         )
         db.add(user_token)
     await db.commit()

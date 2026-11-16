@@ -2,7 +2,7 @@ import asyncio
 
 from app.db.database import AsyncSessionLocal
 from app.model.user import User
-from app.service.agent_service import run_agent
+from app.service.agent_service import collect_agent_stream
 from app.service.chat_service import save_chat
 
 
@@ -20,8 +20,8 @@ async def test_agent():
 
         question1 = "你好，你叫什么名字？"
 
-        # run_agent 现在返回 dict，["answer"] 才是答案字符串
-        result1 = await run_agent(
+        # collect_agent_stream 返回最终执行结果。
+        result1 = await collect_agent_stream(
             question=question1,
             user_id=1,
             db=db,
@@ -48,8 +48,8 @@ async def test_agent():
 
         question2 = "帮我计算 123 × 456"
 
-        # run_agent 现在返回 dict，["answer"] 才是答案字符串
-        result2 = await run_agent(
+        # collect_agent_stream 返回最终执行结果。
+        result2 = await collect_agent_stream(
             question=question2,
             user_id=1,
             db=db,
@@ -76,8 +76,8 @@ async def test_agent():
 
         question3 = "教材中的泰勒公式是什么？"
 
-        # run_agent 现在返回 dict，["answer"] 才是答案字符串
-        result3 = await run_agent(
+        # collect_agent_stream 返回最终执行结果。
+        result3 = await collect_agent_stream(
             question=question3,
             user_id=1,
             db=db,

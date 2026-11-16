@@ -95,280 +95,6 @@ SYSTEM_PROMPT = """
 """
 
 
-async def run_agent(
-    question: str,
-    user_id: int,
-    db: AsyncSession,
-    document_ids: Optional[List[str]] = None,
-    max_iteration: int = 5,
-    # 新增：采样温度。eval 时跑四档对照（0.1/0.3/0.5/0.7），
-    # 看哪档任务完成率最高，就把哪档写进代码。
-    # 默认 0.7，保持现有线上行为不变。
-    temperature: float = 0.7,
-):
-    """
-    Agent 核心执行流程：
-
-    用户问题
-        ↓
-    Conversation Memory
-        ↓
-    DeepSeek
-        ↓
-    Tool Calling
-        ↓
-    Tool 执行
-        ↓
-    Tool Result
-        ↓
-    DeepSeek
-        ↓
-    最终答案
-    """
-
-    # ==========================================
-    # 1. 获取 Conversation Memory
-    # ==========================================
-
-    history = await get_chat_history(
-        user_id=user_id,
-        db=db,
-        limit=6,
-    )
-
-    # ==========================================
-    # 2. 构建 messages
-    # ==========================================
-
-    messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT,
-        }
-    ]
-
-    # ==========================================
-    # 3. 加入历史对话
-    # ==========================================
-
-    for item in history:
-        messages.append(
-            {
-                "role": "user",
-                "content": item.question,
-            }
-        )
-
-        messages.append(
-            {
-                "role": "assistant",
-                "content": item.answer,
-            }
-        )
-
-    # ==========================================
-    # 4. 加入当前问题
-    # ==========================================
-
-    messages.append(
-        {
-            "role": "user",
-            "content": question,
-        }
-    )
-
-    # ==========================================
-    # 5. Agent Loop
-    # ==========================================
-    # 新增：执行统计。eval 时用这些数据画"轮数分布直方图"，
-    # 回答"5 轮上限怎么定的"时拿真实数据说话。
-    iterations_used = 0  # 实际消耗的轮数
-    tool_calls_made = []  # 调过的工具名序列，如 ["textbook_search", "calculator"]
-    truncated = False  # 是否被 max_iteration 截断（没答完就被迫停了）
-
-    for iteration in range(max_iteration):
-        # 輪数从 1 开始计数，方便人类阅读
-        # （iteration 本身从 0 开始）
-        iterations_used = iteration + 1
-
-        print(
-            f"\n========== Agent 第 {iteration + 1} 轮 =========="
-        )
-
-        response = await client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="auto",
-            temperature=temperature,
-        )
-
-        message = response.choices[0].message
-
-        # ======================================
-        # 6. 不需要 Tool
-        # ======================================
-
-        if not message.tool_calls:
-
-            print(
-                "\n========== Agent Final Answer =========="
-            )
-
-            print(message.content)
-
-            # 返回值从纯字符串改为 dict：答案 + 执行统计。
-            # chat_service.ask_question 会取出 answer，API 层无感。
-            return {
-                "answer": message.content,
-                "iterations_used": iterations_used,
-                "tool_calls": tool_calls_made,
-                "truncated": False,  # 正常答完，没被截断
-            }
-
-        # ======================================
-        # 7. 保存 Assistant Tool Call Message
-        # ======================================
-
-        messages.append(message)
-
-        # ======================================
-        # 8. 执行 Tool
-        # ======================================
-
-        for tool_call in message.tool_calls:
-
-            tool_name = tool_call.function.name
-
-            # 新增：记录本轮调了什么工具。
-            # eval 统计"工具选择正确率"时用：
-            # 比如计算题调了 calculator 算选对，调了 textbook_search 算选错。
-            tool_calls_made.append(tool_name)
-            try:
-                arguments = json.loads(
-                    tool_call.function.arguments
-                )
-
-            except json.JSONDecodeError:
-
-                tool_result = {
-                    "success": False,
-                    "error": "invalid_tool_arguments",
-                    "message": "工具参数不是合法 JSON。",
-                }
-
-                messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(
-                            tool_result,
-                            ensure_ascii=False,
-                        ),
-                    }
-                )
-
-                continue
-
-            print(
-                "\n========== Agent Tool Call =========="
-            )
-
-            print(
-                "Tool：",
-                tool_name,
-            )
-
-            print(
-                "Arguments：",
-                arguments,
-            )
-
-            # ==================================
-            # 执行 Tool
-            # ==================================
-
-            try:
-
-                tool_result = await execute_tool_resilient(
-
-                    tool_name=tool_name,
-                    arguments=arguments,
-                    user_id=user_id,
-                    db=db,
-                    document_ids=document_ids,
-                )
-
-            except PermissionError as e:
-
-                tool_result = {
-                    "success": False,
-                    "error": "permission_denied",
-                    "message": str(e),
-                }
-
-            except ValueError as e:
-
-                tool_result = {
-                    "success": False,
-                    "error": "invalid_argument",
-                    "message": str(e),
-                }
-
-            except Exception as e:
-
-                print(
-                    "\n========== Tool Error =========="
-                )
-
-                print(e)
-
-                tool_result = {
-                    "success": False,
-                    "error": "tool_execution_failed",
-                    "message": "工具执行失败，请稍后重试。",
-                }
-
-            print(
-                "\n========== Tool Result =========="
-            )
-
-            print(tool_result)
-
-            # ==================================
-            # 9. Tool Result 返回给 LLM
-            # ==================================
-
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": json.dumps(
-                        tool_result,
-                        ensure_ascii=False,
-                    ),
-                }
-            )
-
-    # ==========================================
-    # 10. 防止 Agent 无限循环
-    # ==========================================
-
-    truncated = True
-
-    return {
-        "answer": (
-            "抱歉，处理这个问题时调用工具次数过多，"
-            "请重新描述问题。"
-        ),
-        "iterations_used": iterations_used,
-        "tool_calls": tool_calls_made,
-        "truncated": truncated,
-    }
-
-
-
-# ============================================================
 # Agent 流式执行（SSE 用）
 # ============================================================
 
@@ -381,13 +107,7 @@ async def run_agent_stream(
     temperature: float = 0.7,
 ):
     """
-    Agent 流式执行：与 run_agent 同一套 Agent Loop，
-    区别是 LLM 调用开 stream=True，token 级 yield。
-
-    为什么不直接改造 run_agent？
-    run_agent 已被 chat_service / 测试脚本 / run_eval.py 依赖
-    （返回 dict），改它会引发 breaking change（第四步的教训）。
-    新开一个 generator，老代码零影响。
+    Agent 流式执行：LLM 调用开 stream=True，token 级 yield。
 
     yield 的事件（dict，前端按 type 分发渲染）：
     - {"type": "token", "content": "..."}
@@ -397,10 +117,10 @@ async def run_agent_stream(
         开始执行工具，前端可渲染"正在检索教材…"。
     - {"type": "done", "answer": "...", "iterations_used": N,
        "tool_calls": [...], "truncated": False}
-        整轮结束，带完整答案和统计（字段与 run_agent 的 dict 一致）。
+        整轮结束，带完整答案和统计。
     """
 
-    # ---- 第 1~4 步与 run_agent 完全一致：取历史、拼 messages ----
+    # ---- 获取历史并拼接 messages ----
     # （重复代码的权衡：抽成公共函数是大重构，先接受重复，
     #  注释标明，未来可抽成 _build_messages()。）
     history = await get_chat_history(
@@ -442,6 +162,8 @@ async def run_agent_stream(
     tool_calls_made = []
     truncated = False
 
+    seen_tool_calls=set()
+
     for iteration in range(max_iteration):
 
         iterations_used = iteration + 1
@@ -460,7 +182,7 @@ async def run_agent_stream(
             tools=TOOLS,
             tool_choice="auto",
             temperature=temperature,
-            stream=True,  # 与 run_agent 唯一的区别
+            stream=True,#True的意思一个一个碎片返回
         )
 
         # ---- 拼凑本轮的完整响应 ----
@@ -469,12 +191,11 @@ async def run_agent_stream(
         # 按 index 分片到达，name/arguments 可能分好几个 chunk）。
         content_parts = []
         # tc_acc: {index: {"id":..., "name":..., "arguments": "..."}}
-        tc_acc = {}
+        tc_acc = {}#用于收集工具调用碎片
 
-        async for chunk in stream:
-            #chunk 是直播的一个小包，delta 是"这一小包里新增的内容"。注意是新增——每个包只带增量，不带之前发过的。
+        async for chunk in stream:#读取每个流式chunk
+            #chunk 是完整的响应包，delta 是"这一小包里新增的内容"。注意是新增——每个包只带增量，不带之前发过的。
             delta = chunk.choices[0].delta
-
             # 文本碎片：直接 yield 给前端，实现打字机效果。
             # 工具调用轮的 content 通常为空，所以这里一般不会误 yield。
             if delta.content:
@@ -488,11 +209,12 @@ async def run_agent_stream(
             # 等拼完整了再执行。
             if delta.tool_calls:
                 for tc_delta in delta.tool_calls:
+                    #setdefault：如果字典存在就取出原字典，如果不存在就创建空字典
                     acc = tc_acc.setdefault(
                         tc_delta.index,
                         {"id": "", "name": "", "arguments": ""},
                     )
-                    if tc_delta.id:
+                    if tc_delta.id:#如果这次碎片带有工具调用id，就存下来
                         acc["id"] = tc_delta.id
                     if tc_delta.function:
                         if tc_delta.function.name:
@@ -502,10 +224,10 @@ async def run_agent_stream(
                             # 不能覆盖（否则只剩最后一片）。
                             acc["arguments"] += tc_delta.function.arguments
 
-        full_content = "".join(content_parts)
+        full_content = "".join(content_parts)#将之前的文本碎片拼成完整的字符串
 
         # ---- 本轮是工具轮还是回答轮？----
-        if not tc_acc:
+        if not tc_acc:#如果没有工具调用，那就是普通回答轮
             # 回答轮：token 已经 yield 完了，发 done 收尾。
             yield {
                 "type": "done",
@@ -522,8 +244,8 @@ async def run_agent_stream(
         #   "function":{"name":..., "arguments":...}}]
         # 只有转成这个格式，execute_tool_resilient 和
         # messages.append 才能复用，不用重写。
-        tool_calls_this_round = []
-        for idx in sorted(tc_acc.keys()):
+        tool_calls_this_round = []#构造标准工具调用列表
+        for idx in sorted(tc_acc.keys()):#按工具调用索引排序
             acc = tc_acc[idx]
             tool_calls_this_round.append(
                 {
@@ -556,11 +278,24 @@ async def run_agent_stream(
                 "type": "tool_call",
                 "tool": tool_name,
             }
-
+            is_duplicate = False
             try:
                 arguments = json.loads(
                     tc["function"]["arguments"] or "{}"
                 )
+                normalized_arguments=json.dumps(
+                    arguments,
+                    sort_keys=True,
+                    ensure_ascii=False,
+                )#把参数字典整理成固定顺序的字符串
+                call_key=f"{tool_name}:{normalized_arguments}"
+                if call_key in seen_tool_calls:
+                    is_duplicate = True
+                    tool_result={
+                        "success":False,
+                        "error":"duplicate_tool_call",
+                        "message":"该工具和参数已经被调用过，不要原样重复调用，可以使用之前的结果或修改参数",
+                    }
 
             except json.JSONDecodeError:
 
@@ -573,52 +308,55 @@ async def run_agent_stream(
             else:
 
                 # 复用第一步的兜底 wrapper：重试→降级→明确失败。
+
                 # 自己不再写一套 try/except。
-                try:
+                if not is_duplicate:
+                    try:
 
-                    tool_result = await execute_tool_resilient(
-                        tool_name=tool_name,
-                        arguments=arguments,
-                        user_id=user_id,
-                        db=db,
-                        document_ids=document_ids,
-                    )
+                        tool_result = await execute_tool_resilient(
+                            tool_name=tool_name,
+                            arguments=arguments,
+                            user_id=user_id,
+                            db=db,
+                            document_ids=document_ids,
+                        )
+                        seen_tool_calls.add(call_key)
 
-                except PermissionError as e:
+                    except PermissionError as e:
 
-                    tool_result = {
-                        "success": False,
-                        "error": "permission_denied",
-                        "message": str(e),
-                    }
+                        tool_result = {
+                            "success": False,
+                            "error": "permission_denied",
+                            "message": str(e),
+                        }
 
-                except ValueError as e:
+                    except ValueError as e:
 
-                    tool_result = {
-                        "success": False,
-                        "error": "invalid_argument",
-                        "message": str(e),
-                    }
+                        tool_result = {
+                            "success": False,
+                            "error": "invalid_argument",
+                            "message": str(e),
+                        }
 
-                except Exception as e:
+                    except Exception as e:
 
-                    print(
-                        "\n========== Tool Error =========="
-                    )
+                        print(
+                            "\n========== Tool Error =========="
+                        )
 
-                    print(e)
+                        print(e)
 
-                    tool_result = {
-                        "success": False,
-                        "error": "tool_execution_failed",
-                        "message": "工具执行失败，请稍后重试。",
-                    }
+                        tool_result = {
+                            "success": False,
+                            "error": "tool_execution_failed",
+                            "message": "工具执行失败，请稍后重试。",
+                        }
 
-            print(
-                "\n========== Tool Result =========="
-            )
+                print(
+                    "\n========== Tool Result =========="
+                )
 
-            print(tool_result)
+                print(tool_result)
 
             messages.append(
                 {
@@ -643,4 +381,37 @@ async def run_agent_stream(
         "iterations_used": iterations_used,
         "tool_calls": tool_calls_made,
         "truncated": truncated,
+    }
+
+
+async def collect_agent_stream(
+    question: str,
+    user_id: int,
+    db: AsyncSession,
+    document_ids: Optional[List[str]] = None,
+    max_iteration: int = 5,
+    temperature: float = 0.7,
+):
+    """消费 run_agent_stream，返回最终 done 事件。"""
+    result = None
+
+    async for event in run_agent_stream(
+        question=question,
+        user_id=user_id,
+        db=db,
+        document_ids=document_ids,
+        max_iteration=max_iteration,
+        temperature=temperature,
+    ):
+        if event.get("type") == "done":
+            result = event
+
+    if result is None:
+        raise RuntimeError("Agent 流式执行未返回 done 事件")
+
+    return {
+        "answer": result["answer"],
+        "iterations_used": result["iterations_used"],
+        "tool_calls": result["tool_calls"],
+        "truncated": result["truncated"],
     }

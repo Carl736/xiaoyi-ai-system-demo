@@ -1,5 +1,5 @@
 """
-eval 跑分脚本：加载测试集 → 逐题调 run_agent → 存原始结果。
+eval 跑分脚本：加载测试集 → 逐题调流式 Agent → 存原始结果。
 
 使用流程（对应 eval计划.md）：
 1. 周一：把 30 道题填进 test_set.json（格式见该文件）
@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.db.database import AsyncSessionLocal
-from app.service.agent_service import run_agent
+from app.service.agent_service import collect_agent_stream
 from app.service.chat_service import save_chat
 from app.model.user import User  # noqa: F401，让 user 表注册进 metadata，否则 chat_history 的外键找不到目标表
 from app.vectorstore.faiss_db import vector_store
@@ -29,7 +29,7 @@ TEST_SET_PATH = EVAL_DIR / "test_set.json"
 
 # 1. eval 用 user_id=1：教材按 user_id 隔离，只有 user=1 名下有教材，
 #    用 999 会导致教材题全部检索为空（已踩坑）。
-#    代价是历史污染：run_agent 会读该用户最近 6 条历史。
+#    代价是历史污染：Agent 会读该用户最近 6 条历史。
 #    解法：每次跑分前先跑 python -m app.eval.clear_history 清掉历史，
 #    保证每题起点一致，控制变量。
 #    多轮指代题需要的历史，由下面的 context_turns 机制单独构造。
@@ -55,7 +55,7 @@ async def run_one(question, db, context_turns=None):
     再跑正式题（如 "它有什么应用？"），这样"它"才有所指。
     没有前置轮的题传 None。
 
-    注意：run_agent 只读历史、不写历史，写历史是 save_chat 的事
+    注意：Agent 只读历史、不写历史，写历史是 save_chat 的事
     （api/chat.py 里也是 ask_question + save_chat 两步）。
     所以前置轮跑完必须 save，否则历史是空的，前置轮机制失效。
     正式题不 save——历史里只留各题的前置轮（短问题），
@@ -63,7 +63,7 @@ async def run_one(question, db, context_turns=None):
     """
     if context_turns:
         for ctx_q in context_turns:
-            ctx_result = await run_agent(
+            ctx_result = await collect_agent_stream(
                 question=ctx_q,
                 user_id=EVAL_USER_ID,
                 db=db,
@@ -79,7 +79,7 @@ async def run_one(question, db, context_turns=None):
                 answer=ctx_result["answer"],
             )
 
-    result = await run_agent(
+    result = await collect_agent_stream(
         question=question,
         user_id=EVAL_USER_ID,
         db=db,
@@ -117,7 +117,7 @@ async def main():
                     "question": item["question"],
                     "expected_tool": item["expected_tool"],
                     "expected_answer": item["expected_answer"],
-                    # 下面是 run_agent 返回的执行数据
+                    # 下面是 Agent 返回的执行数据
                     "answer": r["answer"],
                     "iterations_used": r["iterations_used"],
                     "tool_calls": r["tool_calls"],
