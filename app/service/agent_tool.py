@@ -89,6 +89,54 @@ TOOLS = [
     }
 ]
 
+#负责发现问题并抛出异常
+#arguments:模型为这个工具生成的参数字典
+def validate_tool_arguments(tool_name, arguments):
+    matched_tool=None
+    for tool in TOOLS:
+        if tool_name==tool["function"]["name"]:
+            matched_tool=tool
+            break
+    if matched_tool is None:
+        raise ValueError(
+            f"未知工具：{tool_name}"
+        )
+    if not isinstance(arguments,dict):
+        raise ValueError(
+            f"工具参数必须是JSON对象"
+        )
+    parameters=matched_tool["function"]["parameters"]
+    required=parameters.get("required",[])
+    for require in required:
+        if require not in arguments:
+            raise ValueError(
+                f"{tool_name} 缺少必填参数 {require}"
+            )
+    properties=parameters.get("properties",{})
+    type_mapping = {
+        "string": str,
+        "integer": int,
+    }
+    for name, value in arguments.items():
+        field_schema = properties.get(name)
+
+        if field_schema is None:
+            continue
+
+        expected_type_name = field_schema.get("type")
+        expected_type = type_mapping.get(expected_type_name)
+
+        if expected_type is None:
+            continue
+
+        if not isinstance(value, expected_type):
+            raise ValueError(
+                f"{tool_name} 参数 {name} 类型错误，"
+                f"期望 {expected_type_name}，"
+                f"实际 {type(value).__name__}"
+            )
+
+
 
 # ============================================================
 # Tool Executor
@@ -111,6 +159,10 @@ async def execute_tool(
     # ========================================================
     # textbook_search
     # ========================================================
+    validate_tool_arguments(tool_name,arguments)
+
+
+
 
     if tool_name == "textbook_search":
 
@@ -256,7 +308,7 @@ async def execute_tool_resilient(
                 "degraded": True,
                 "note": (
                     "首次检索无结果，已放宽检索条件 "
-                    "(top_k 翻倍、相似度阈值降至 0.5) "
+                    "(top_k 翻倍、相似度阈值降至 0.15) "
                     "后得到以下结果。"
                 ),
                 "results": degraded,
