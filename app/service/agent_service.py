@@ -290,6 +290,10 @@ async def run_agent_stream(
                 )#把参数字典整理成固定顺序的字符串
                 call_key=f"{tool_name}:{normalized_arguments}"
                 if call_key in seen_tool_calls:
+                    print(
+                        f"[Tool Guard] 重复调用已拦截，"
+                        f"tool={tool_name}"
+                    )
                     is_duplicate = True
                     tool_result={
                         "success":False,
@@ -312,7 +316,7 @@ async def run_agent_stream(
                 # 自己不再写一套 try/except。
                 if not is_duplicate:
                     try:
-
+                        seen_tool_calls.add(call_key)
                         tool_result = await execute_tool_resilient(
                             tool_name=tool_name,
                             arguments=arguments,
@@ -320,7 +324,7 @@ async def run_agent_stream(
                             db=db,
                             document_ids=document_ids,
                         )
-                        seen_tool_calls.add(call_key)
+
 
                     except PermissionError as e:
 
