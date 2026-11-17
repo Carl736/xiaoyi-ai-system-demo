@@ -341,6 +341,7 @@ async def run_agent_stream(
                             "error": "invalid_argument",
                             "message": str(e),
                         }
+                        print(f"[Tool Guard] 第{iteration+1}轮，工具 {tool_name} 被拒绝，原因：{e}")
 
                     except Exception as e:
 
