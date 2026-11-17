@@ -121,13 +121,23 @@ def validate_tool_arguments(tool_name, arguments):
         field_schema = properties.get(name)
 
         if field_schema is None:
-            continue
+            raise ValueError(
+                f"参数{name}没在schema中"
+                f"没有被工具{tool_name}声明"
+            )
 
         expected_type_name = field_schema.get("type")
         expected_type = type_mapping.get(expected_type_name)
 
         if expected_type is None:
             continue
+
+        if expected_type is int and isinstance(value,bool):
+            raise ValueError(
+                f"{tool_name} 参数 {name} 类型错误，"
+                f"期望 {expected_type_name}，"
+                f"实际 {type(value).__name__}"
+            )
 
         if not isinstance(value, expected_type):
             raise ValueError(
@@ -147,6 +157,7 @@ async def execute_tool(
     arguments: Dict[str, Any],
     user_id: int,
     db: AsyncSession,
+    threshold_override=None,
     document_ids: Optional[List[str]] = None,
 ):
     """
@@ -165,17 +176,18 @@ async def execute_tool(
 
 
     if tool_name == "textbook_search":
-
+        effective_threshold = (
+            threshold_override
+            if threshold_override is not None
+            else SIMILARITY_THRESHOLD
+        )
         return await textbook_search(
             question=arguments["question"],
             user_id=user_id,
             db=db,
             document_ids=document_ids,
             top_k=arguments.get("top_k", 3),
-            threshold=arguments.get(
-                "threshold",
-                SIMILARITY_THRESHOLD,
-            ),
+            threshold=effective_threshold
         )
 
 
@@ -225,6 +237,7 @@ async def _execute_with_retry(
     user_id: int,
     db: AsyncSession,
     document_ids: Optional[List[str]] = None,
+    threshold_override=None
 ):
     """带指数退避重试的原始 tool 调用，只重试瞬时错误。"""
     last_exc = None
@@ -237,6 +250,7 @@ async def _execute_with_retry(
                 user_id=user_id,
                 db=db,
                 document_ids=document_ids,
+                threshold_override=threshold_override
             )
         except RETRYABLE_ERRORS as e:
             last_exc = e
@@ -260,7 +274,7 @@ async def execute_tool_resilient(
 
     1. 瞬时错误 → 指数退避重试（最多 2 次）
     2. textbook_search 正常返回空 → 降级：
-       top_k 翻倍、阈值降到 0.5，再查一次
+        top_k 翻倍、阈值降到 0.15，再查一次
     3. 仍无结果 / 参数错误 → 返回明确标注的失败，
        让 LLM 按 system prompt 走 fallback
        （明确说"教材里没找到" + 通用知识补充并区分标注）
@@ -289,7 +303,6 @@ async def execute_tool_resilient(
     ):
         degraded_args = dict(arguments)
         degraded_args["top_k"] = arguments.get("top_k", 3) * 2
-        degraded_args["threshold"] = DEGRADED_THRESHOLD
         print(f">>> 触发降级：top_k 翻倍，阈值降到 {DEGRADED_THRESHOLD}，重查一次")
 
 
@@ -300,6 +313,7 @@ async def execute_tool_resilient(
             user_id=user_id,
             db=db,
             document_ids=document_ids,
+            threshold_override=DEGRADED_THRESHOLD
         )
 
         if degraded:
