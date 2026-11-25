@@ -1,19 +1,12 @@
 from typing import Optional, List
 import json
-
-from openai import AsyncOpenAI
-
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.config import settings
 from app.service.agent_tool import TOOLS, execute_tool_resilient
-from app.service.memory_service import get_chat_history
+from app.service.memory_service import get_chat_history,get_user_memories,select_history_with_budget,summary_process,get_recent_summary,create_or_update_summary
+from app.core.llm_client import client
 
-
-client = AsyncOpenAI(
-    api_key=settings.settings.deepseek_api_key,
-    base_url="https://api.deepseek.com/v1"
-)
+logger = logging.getLogger(__name__)
 
 
 
@@ -128,6 +121,11 @@ async def run_agent_stream(
         db=db,
         limit=6,
     )
+    memories=await get_user_memories(
+        user_id=user_id,
+        db=db,
+        limit=20 #防止长期记忆无限膨胀
+    )
 
     messages = [
         {
@@ -136,8 +134,116 @@ async def run_agent_stream(
         }
     ]
 
+    #将长期记忆拼入上下文
+    if memories:
+        memory_text="\n".join(
+            memory.content
+            for memory in memories
+        )
+        logger.debug(
+            "已加载用户长期记忆 user_id=%s memory_count=%d",
+            user_id,
+            len(memories),
+        )
+        messages.append(
+            {
+                "role":"system",
+                "content":(
+                    "以下是关于当前用户的长期记忆：\n"
+                    +memory_text
+                ),
+            }
+        )
 
-    for item in history:
+    cut_history,save_history=select_history_with_budget(history=history)
+    summary_record=None
+    summary_read_failed=False
+    try:
+        async with db.begin_nested():
+            summary_record=await get_recent_summary(user_id=user_id,db=db)
+    except Exception:
+        summary_read_failed=True
+        summary_record=None
+        logger.warning(
+            "读取摘要失败 user_id=%s",
+            user_id,
+            exc_info=True
+        )
+
+
+    previous_summary=None
+    covered_id=None
+    cut_sum=[]
+    if summary_record is None:
+        for cut_his in cut_history:
+            cut_sum.append(cut_his)
+
+    elif summary_record is not None:
+        previous_summary=summary_record.content#取出旧摘要
+        covered_id=summary_record.covered_through_chat_id#取出覆盖id
+
+        for cut_his in cut_history:
+            if summary_record.covered_through_chat_id is None or cut_his.id>covered_id :
+                cut_sum.append(cut_his)
+
+    if cut_sum and not summary_read_failed:
+        #该条件防止程序误把“读取摘要失败（见164行）”当做“用户还没摘要”
+        logger.info(
+            "开始生成短期摘要user_id=%s dropped_rounds=%d",
+            user_id,
+            len(cut_sum),
+        )
+        try:
+            result=await summary_process(previous_summary,cut_sum)
+
+            async with db.begin_nested():
+                #在当期那数据库事务里开一个保存点（savepoint），给这次事务写入设一个局部回滚点
+                #如果失败except接住异常，result改为pre。。。程序同样记录warning并记录旧摘要
+                await create_or_update_summary(
+                    user_id=user_id,
+                    content=result,
+                    covered_through_chat_id=max(cut.id for cut in cut_sum),
+                    db=db
+                )
+        except Exception:
+            logger.warning(
+                "短期摘要失败，回退到旧摘要或纯截断 user_id=%s",
+                user_id,
+                exc_info=True,#把异常类型，错误信息和traceback一起写进日志
+            )
+            result=previous_summary
+    else:
+        result=previous_summary
+
+
+    if result:
+        messages.append(
+            {
+                "role":"system",
+                "content":"以下是该用户的短期摘要\n"+result
+            }
+        )
+
+
+
+
+
+    if cut_history:
+        logger.info(
+            "短期历史触发预算截断 user_id=%s budget_estimated_chars=%d kept_rounds=%d dropped_rounds=%d",
+            user_id,
+            3000,
+            len(save_history),
+            len(cut_history),
+        )
+    else:
+        logger.debug(
+            "短期历史未触发预算截断 user_id=%s kept_rounds=%d",
+            user_id,
+            len(save_history),
+        )
+
+    for item in save_history:
         messages.append(
             {
                 "role": "user",

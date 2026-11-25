@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-
+import logging
+from app.core.logging_config import configure_logging
+configure_logging()
 from app.vectorstore.faiss_db import vector_store
-
+from app.vectorstore.BM25_db import bm25_store
 from app.api import chat, user, pdf, document
+
+
 
 
 app = FastAPI(
@@ -13,7 +17,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
+logger = logging.getLogger(__name__)
 # ==========================================
 # 注册路由
 # ==========================================
@@ -59,9 +63,15 @@ async def root():
 
 @app.on_event("startup")
 async def startup_event():
-
     vector_store.load(
         "data/vectors/faiss_index"
     )
-
-    print("FAISS 向量库加载成功")
+    logger.info(
+        "FAISS加载成功"
+    )
+    bm25_store.build(
+        vector_store.metadata
+    )
+    logger.info(
+        "BM25加载成功"
+    )

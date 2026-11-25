@@ -4,6 +4,8 @@ from app.utils.embedding import get_embedding
 from app.vectorstore.faiss_db import vector_store
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.service.document_service import get_user_documents_by_document_ids
+from app.vectorstore.BM25_db import bm25_store,rrf_fuse
+
 SIMILARITY_THRESHOLD=0.25
 
 async def textbook_search(
@@ -59,21 +61,32 @@ async def textbook_search(
         document_ids=document_ids,
         threshold=threshold,
     )
-
+    #bm25检索
+    bm25_docs=bm25_store.search(
+        question=question,
+        user_id=user_id,
+        document_ids=document_ids,
+        top_k=top_k
+    )
     #3没找到
-    if not docs:
+    if not docs and not bm25_docs:
         return []
 
-    #整理Tool返回结果
-    results=[]
+    fused_docs=rrf_fuse(
+        vector_results=docs,
+        bm25_results=bm25_docs,
+        top_k=top_k
+    )
 
-    for doc in docs:
+    results=[]
+    for doc in fused_docs:
         results.append({
-            "text":doc["text"],
-            "page":doc["page"],
-            "source":doc.get("source"),
-            "document_id":doc.get("document_id"),
-            "score":doc.get("score"),
+            "chunk_id": doc.get("chunk_id"),
+            "text": doc["text"],
+            "page": doc["page"],
+            "source": doc.get("source"),
+            "document_id": doc.get("document_id"),
+            "score": doc.get("rrf_score"),
         })
 
     return results

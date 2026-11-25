@@ -7,7 +7,7 @@ from app.utils.chunking import chunk_pages
 from app.utils.embedding import get_embedding
 from app.vectorstore.faiss_db import vector_store
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.vectorstore.BM25_db import bm25_store
 from app.model.document import DocumentStatus
 
 # =========================
@@ -246,6 +246,7 @@ async def process_pdf(
             embeddings=embeddings,
             metadata=metadata
         )
+        bm25_store.build(vector_store.metadata)
 
     # =========================
     # 12. 保存 FAISS

@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.chat_history import ChatHistory
 from app.service.agent_service import collect_agent_stream
-
-
+from app.service.memory_service import extract_user_memories,create_user_memory
+from sqlalchemy.exc import IntegrityError
 async def ask_question(
     question: str,
     db: AsyncSession,
@@ -28,6 +28,24 @@ async def ask_question(
         db=db,
         document_ids=document_ids,
     )
+    memories=[]
+    try:
+        memories=await extract_user_memories(question)
+        for memory in memories:
+            try:
+                async with db.begin_nested():
+                    #在当前数据库事务里面开一个小事务，如果失败回滚，但是不会影响其他记忆的写入
+                    await create_user_memory(
+                        user_id=user_id,
+                        content=memory,
+                        db=db
+                    )
+            except IntegrityError:
+                print(f"用户 {user_id} 的重复记忆已跳过：{memory}")
+    except Exception as e:
+        await db.rollback()#撤销本次未提交的记忆写入
+        print(f"抽取记忆失败，错误原因：{e}")
+
 
     return result["answer"]
 
